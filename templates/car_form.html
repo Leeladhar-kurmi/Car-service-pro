@@ -1,0 +1,259 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }} - Car Service Reminder{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-1">{{ title }}</h1>
+                    <p class="text-muted mb-0">
+                        {% if car %}
+                            Update your vehicle information
+                        {% else %}
+                            Add a new vehicle to track its maintenance
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('cars') }}" class="btn btn-outline-secondary">
+                        <i data-feather="arrow-left" class="me-1"></i>Back to Cars
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="car" class="me-2"></i>
+                        Vehicle Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate data-autosave="car-form">
+                        {{ form.hidden_tag() }}
+                        
+                        <div class="row g-3">
+                            <!-- Make -->
+                            <div class="col-md-6">
+                                <label for="{{ form.make.id }}" class="form-label">{{ form.make.label.text }}</label>
+                                {{ form.make(class="form-control") }}
+                                {% if form.make.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.make.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">e.g., Toyota, Honda, Ford</div>
+                            </div>
+
+                            <!-- Model -->
+                            <div class="col-md-6">
+                                <label for="{{ form.model.id }}" class="form-label">{{ form.model.label.text }}</label>
+                                {{ form.model(class="form-control") }}
+                                {% if form.model.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.model.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">e.g., Camry, Civic, F-150</div>
+                            </div>
+
+                            <!-- Year -->
+                            <div class="col-md-6">
+                                <label for="{{ form.year.id }}" class="form-label">{{ form.year.label.text }}</label>
+                                {{ form.year(class="form-control") }}
+                                {% if form.year.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.year.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Model year (1900-2030)</div>
+                            </div>
+
+                            <!-- Registration Number -->
+                            <div class="col-md-6">
+                                <label for="{{ form.registration_number.id }}" class="form-label">{{ form.registration_number.label.text }}</label>
+                                {{ form.registration_number(class="form-control") }}
+                                {% if form.registration_number.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.registration_number.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">License plate number</div>
+                            </div>
+
+                            <!-- Color -->
+                            <div class="col-md-6">
+                                <label for="{{ form.color.id }}" class="form-label">{{ form.color.label.text }}</label>
+                                {{ form.color(class="form-control") }}
+                                {% if form.color.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.color.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Optional - vehicle color</div>
+                            </div>
+
+                            <!-- Current Mileage -->
+                            <div class="col-md-6">
+                                <label for="{{ form.current_mileage.id }}" class="form-label">{{ form.current_mileage.label.text }}</label>
+                                <div class="input-group">
+                                    {{ form.current_mileage(class="form-control") }}
+                                    <span class="input-group-text">miles</span>
+                                </div>
+                                {% if form.current_mileage.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.current_mileage.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Current odometer reading</div>
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        {% if car %}
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                            <i data-feather="trash-2" class="me-1"></i>Delete Car
+                                        </button>
+                                        {% endif %}
+                                    </div>
+                                    <div>
+                                        <a href="{{ url_for('cars') }}" class="btn btn-outline-secondary me-2">
+                                            Cancel
+                                        </a>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i data-feather="save" class="me-1"></i>
+                                            {% if car %}Update Car{% else %}Add Car{% endif %}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Next Steps Card -->
+            {% if not car %}
+            <div class="card mt-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0">
+                        <i data-feather="info" class="me-2"></i>
+                        What's Next?
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">After adding your car, you can:</p>
+                    <ul class="mb-0">
+                        <li>Set up service schedules for oil changes, tire rotations, and more</li>
+                        <li>Add your service history to track maintenance records</li>
+                        <li>Enable notifications to get reminded when services are due</li>
+                        <li>Monitor all your vehicles from the dashboard</li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if car %}
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger" id="deleteModalLabel">
+                    <i data-feather="alert-triangle" class="me-2"></i>
+                    Delete Car
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete <strong>{{ car }}</strong>?</p>
+                <div class="alert alert-warning">
+                    <i data-feather="alert-triangle" class="me-2"></i>
+                    <strong>Warning:</strong> This action cannot be undone. All service schedules and history records for this car will also be permanently deleted.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('delete_car', car_id=car.id) }}" class="d-inline">
+                    <button type="submit" class="btn btn-danger">
+                        <i data-feather="trash-2" class="me-1"></i>Delete Car
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Form validation
+    (function() {
+        'use strict';
+        window.addEventListener('load', function() {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+
+    // Auto-capitalize make and model fields
+    document.addEventListener('DOMContentLoaded', function() {
+        const makeField = document.getElementById('make');
+        const modelField = document.getElementById('model');
+        const colorField = document.getElementById('color');
+        
+        function capitalizeWords(event) {
+            const input = event.target;
+            const words = input.value.split(' ');
+            const capitalizedWords = words.map(word => 
+                word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+            );
+            input.value = capitalizedWords.join(' ');
+        }
+        
+        if (makeField) makeField.addEventListener('blur', capitalizeWords);
+        if (modelField) modelField.addEventListener('blur', capitalizeWords);
+        if (colorField) colorField.addEventListener('blur', capitalizeWords);
+        
+        // Format mileage with commas
+        const mileageField = document.getElementById('current_mileage');
+        if (mileageField) {
+            mileageField.addEventListener('input', function() {
+                let value = this.value.replace(/,/g, '');
+                if (!isNaN(value) && value !== '') {
+                    this.value = parseInt(value).toLocaleString();
+                }
+            });
+            
+            mileageField.addEventListener('blur', function() {
+                this.value = this.value.replace(/,/g, '');
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -166,21 +166,39 @@
                             <small class="text-muted">Total Cars</small>
                         </div>
                         <div class="col-sm-3">
-                            <h4 class="text-danger">
-                                {{ cars|sum(attribute='services')|selectattr('status', 'equalto', 'overdue')|list|length }}
-                            </h4>
+                            {% set overdue_count = [] %}
+                            {% for car in cars %}
+                                {% for service in car.services %}
+                                    {% if service.status == 'overdue' %}
+                                        {% set _ = overdue_count.append(1) %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            <h4 class="text-danger">{{ overdue_count|length }}</h4>
                             <small class="text-muted">Overdue Services</small>
                         </div>
                         <div class="col-sm-3">
-                            <h4 class="text-warning">
-                                {{ cars|sum(attribute='services')|selectattr('status', 'equalto', 'due_soon')|list|length }}
-                            </h4>
+                            {% set due_soon_count = [] %}
+                            {% for car in cars %}
+                                {% for service in car.services %}
+                                    {% if service.status == 'due_soon' %}
+                                        {% set _ = due_soon_count.append(1) %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            <h4 class="text-warning">{{ due_soon_count|length }}</h4>
                             <small class="text-muted">Due Soon</small>
                         </div>
                         <div class="col-sm-3">
-                            <h4 class="text-success">
-                                {{ cars|sum(attribute='services')|selectattr('status', 'equalto', 'upcoming')|list|length }}
-                            </h4>
+                            {% set upcoming_count = [] %}
+                            {% for car in cars %}
+                                {% for service in car.services %}
+                                    {% if service.status == 'upcoming' %}
+                                        {% set _ = upcoming_count.append(1) %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                            <h4 class="text-success">{{ upcoming_count|length }}</h4>
                             <small class="text-muted">Upcoming</small>
                         </div>
                     </div>

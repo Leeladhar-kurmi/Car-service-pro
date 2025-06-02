@@ -253,7 +253,6 @@ def service_worker():
 
 
 # Initialize default service types
-@app.before_first_request
 def create_default_service_types():
     """Create default service types if they don't exist"""
     default_types = [
@@ -273,3 +272,7 @@ def create_default_service_types():
             db.session.add(service_type)
     
     db.session.commit()
+
+# Initialize service types when the app starts
+with app.app_context():
+    create_default_service_types()

@@ -1,96 +1,22 @@
 {% extends "base.html" %}
 
-{% block title %}Access Denied - Car Service Reminder{% endblock %}
+{% block title %}Access Denied - Car Service Pro{% endblock %}
 
 {% block content %}
-<div class="container">
-    <div class="row justify-content-center min-vh-75 align-items-center">
-        <div class="col-lg-6 col-md-8">
-            <div class="card border-0 shadow-lg">
-                <div class="card-body text-center py-5">
-                    <!-- Error Icon -->
-                    <div class="mb-4">
-                        <i data-feather="shield-off" style="width: 80px; height: 80px;" class="text-danger"></i>
-                    </div>
-                    
-                    <!-- Error Title -->
-                    <h1 class="display-6 text-danger mb-3">Access Denied</h1>
-                    
-                    <!-- Error Message -->
-                    <p class="text-muted mb-4 lead">
-                        You don't have permission to access this page, or your session has expired.
-                    </p>
-                    
-                    <!-- Possible Reasons -->
-                    <div class="alert alert-light border text-start mb-4">
-                        <h6 class="alert-heading">
-                            <i data-feather="info" class="me-2"></i>
-                            This might happen if:
-                        </h6>
-                        <ul class="mb-0 small">
-                            <li>You're not signed in to your account</li>
-                            <li>Your session has expired</li>
-                            <li>You're trying to access someone else's data</li>
-                            <li>There was an authentication error</li>
-                        </ul>
-                    </div>
-                    
-                    <!-- Action Buttons -->
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
-                        <a href="{{ url_for('replit_auth.login') }}" class="btn btn-primary btn-lg">
-                            <i data-feather="log-in" class="me-2"></i>
-                            Sign In
-                        </a>
-                        <a href="{{ url_for('index') }}" class="btn btn-outline-secondary btn-lg">
-                            <i data-feather="home" class="me-2"></i>
-                            Go Home
-                        </a>
-                    </div>
-                    
-                    <!-- Additional Help -->
-                    <div class="mt-4">
-                        <p class="small text-muted">
-                            If you continue to experience issues, try clearing your browser cache or 
-                            <a href="javascript:history.back()" class="text-decoration-none">go back</a> 
-                            to the previous page.
-                        </p>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Features Reminder -->
-            <div class="card mt-4 border-info">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0">
-                        <i data-feather="star" class="me-2"></i>
-                        Why Sign In?
-                    </h6>
-                </div>
-                <div class="card-body">
-                    <div class="row text-center">
-                        <div class="col-sm-4 mb-3">
-                            <i data-feather="car" class="text-primary mb-2" style="width: 32px; height: 32px;"></i>
-                            <div class="small">
-                                <strong>Manage Your Cars</strong><br>
-                                <span class="text-muted">Track multiple vehicles</span>
-                            </div>
-                        </div>
-                        <div class="col-sm-4 mb-3">
-                            <i data-feather="bell" class="text-warning mb-2" style="width: 32px; height: 32px;"></i>
-                            <div class="small">
-                                <strong>Service Reminders</strong><br>
-                                <span class="text-muted">Never miss maintenance</span>
-                            </div>
-                        </div>
-                        <div class="col-sm-4 mb-3">
-                            <i data-feather="database" class="text-success mb-2" style="width: 32px; height: 32px;"></i>
-                            <div class="small">
-                                <strong>Service History</strong><br>
-                                <span class="text-muted">Track all records</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<div class="container py-5">
+    <div class="row justify-content-center text-center">
+        <div class="col-lg-6">
+            <div class="error-page">
+                <h1 class="display-1 text-danger mb-4">403</h1>
+                <h2 class="mb-4">Access Denied</h2>
+                <p class="lead text-muted mb-4">
+                    You don't have permission to access this page.
+                    Please sign in with an authorized account.
+                </p>
+                <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg">
+                    <i data-feather="log-in" class="me-2"></i>
+                    Sign In
+                </a>
             </div>
         </div>
     </div>
@@ -99,26 +25,14 @@
 
 {% block scripts %}
 <script>
-    // Auto-redirect to login after a delay if user is on this page for too long
-    setTimeout(function() {
-        if (confirm('Would you like to go to the sign-in page?')) {
-            window.location.href = "{{ url_for('replit_auth.login') }}";
-        }
-    }, 30000); // 30 seconds
-
-    // Show helpful message if user came from a protected page
+    // Replace feather icons
     document.addEventListener('DOMContentLoaded', function() {
-        const referrer = document.referrer;
-        if (referrer && referrer.includes(window.location.host)) {
-            const helpText = document.createElement('div');
-            helpText.className = 'alert alert-info mt-3';
-            helpText.innerHTML = `
-                <i data-feather="info" class="me-2"></i>
-                <strong>Tip:</strong> After signing in, you'll be redirected back to the page you were trying to access.
-            `;
-            document.querySelector('.card-body').appendChild(helpText);
-            feather.replace();
-        }
+        feather.replace();
     });
+    
+    // Redirect to login after 5 seconds
+    setTimeout(function() {
+        window.location.href = "{{ url_for('login') }}";
+    }, 5000);
 </script>
 {% endblock %}

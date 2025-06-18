@@ -23,26 +23,38 @@ def check_service_reminders():
         notifications_sent = 0
         
         for service in services:
-            if service.is_due_soon() or service.is_due():
+            status = service.get_due_status()
+            if status['is_due'] or status['is_due_soon']:
                 # Send notification
                 user = service.car.owner
                 if user.push_subscription:
                     try:
                         subscription_info = json.loads(user.push_subscription)
                         
-                        # Determine message based on service status
-                        if service.is_due():
+                        # Build notification message
+                        if status['is_due']:
                             title = f"Service Overdue: {service.service_type.name}"
                             message = f"Your {service.car} is overdue for {service.service_type.name}"
                         else:
                             title = f"Service Due Soon: {service.service_type.name}"
-                            message = f"Your {service.car} needs {service.service_type.name} soon"
+                            message = f"Your {service.car} will need {service.service_type.name} soon"
                         
-                        # Add details about due date/mileage
-                        if service.next_service_date:
-                            message += f" (due: {service.next_service_date.strftime('%m/%d/%Y')})"
-                        if service.next_service_mileage:
-                            message += f" (due at: {service.next_service_mileage:,} miles)"
+                        # Add specific details about why it's due
+                        details = []
+                        if status['due_by_date'] and status['days_remaining'] is not None:
+                            if status['days_remaining'] <= 0:
+                                details.append("Overdue by date")
+                            else:
+                                details.append(f"Due in {status['days_remaining']} days")
+                                
+                        if status['due_by_mileage'] and status['km_remaining'] is not None:
+                            if status['km_remaining'] <= 0:
+                                details.append(f"Overdue by {abs(status['km_remaining'])} KM")
+                            else:
+                                details.append(f"Due in {status['km_remaining']} KM")
+                        
+                        if details:
+                            message += f" ({', '.join(details)})"
                         
                         # Send push notification
                         send_push_notification(

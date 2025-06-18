@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Service History - Car Service Reminder{% endblock %}
+{% block title %}Service History - Car Service Pro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -26,7 +26,7 @@
                             {% for car in current_user.cars %}
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('add_service_history', car_id=car.id) }}">
-                                    <i data-feather="plus" class="me-2"></i>{{ car }}
+                                    <i data-feather="plus" class="me-2"></i>{{ car.make }} {{ car.model }} {{ car.registration_number }}
                                 </a>
                             </li>
                             {% endfor %}
@@ -37,8 +37,8 @@
         </div>
     </div>
 
-    {% if not service_history %}
-    <!-- No History State -->
+    {% if not service_history and not request.args %}
+    <!-- No History State - Only show when there are no filters applied -->
     <div class="row">
         <div class="col-12">
             <div class="card text-center py-5">
@@ -58,7 +58,7 @@
                             {% for car in current_user.cars %}
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('add_service_history', car_id=car.id) }}">
-                                    {{ car }}
+                                    {{ car.make }} {{car.model}} {{car.registration_number}}
                                 </a>
                             </li>
                             {% endfor %}
@@ -88,13 +88,13 @@
                         <div class="col-sm-3">
                             <h5 class="text-success">
                                 {% set total_cost = service_history|selectattr('cost')|sum(attribute='cost') %}
-                                ${{ "%.2f"|format(total_cost) }}
+                                ₹{{ "%.2f"|format(total_cost) }}
                             </h5>
                             <small class="text-muted">Total Spent</small>
                         </div>
                         <div class="col-sm-3">
                             <h5 class="text-info">
-                                {% set this_year = service_history|selectattr('service_date')|select('test_year_filter', 2024)|list|length %}
+                                {% set this_year = service_history|select('test_year_filter', year)|list|length %}
                                 {{ this_year }}
                             </h5>
                             <small class="text-muted">This Year</small>
@@ -123,8 +123,8 @@
                             <select name="car" id="car_filter" class="form-select">
                                 <option value="">All Cars</option>
                                 {% for car in current_user.cars %}
-                                <option value="{{ car.id }}" {% if request.args.get('car') == car.id|string %}selected{% endif %}>
-                                    {{ car }}
+                                <option value="{{ car.id }}" {% if request.args.get('car')|string == car.id|string %}selected{% endif %}>
+                                    {{ car.make }} {{ car.model }} {{ car.registration_number }}
                                 </option>
                                 {% endfor %}
                             </select>
@@ -134,8 +134,7 @@
                             <select name="service_type" id="service_filter" class="form-select">
                                 <option value="">All Services</option>
                                 {% for service_type in service_history|map(attribute='service_type')|unique %}
-                                <option value="{{ service_type.id }}" 
-                                        {% if request.args.get('service_type') == service_type.id|string %}selected{% endif %}>
+                                <option value="{{ service_type.id }}" {% if request.args.get('service_type')|string == service_type.id|string %}selected{% endif %}>
                                     {{ service_type.name }}
                                 </option>
                                 {% endfor %}
@@ -145,20 +144,20 @@
                             <label for="year_filter" class="form-label">Year</label>
                             <select name="year" id="year_filter" class="form-select">
                                 <option value="">All Years</option>
-                                {% for year in range(2020, 2025) %}
-                                <option value="{{ year }}" {% if request.args.get('year') == year|string %}selected{% endif %}>
+                                {% for year in range(2020, 2027) %}
+                                <option value="{{ year }}" {% if request.args.get('year')|string == year|string %}selected{% endif %}>
                                     {{ year }}
                                 </option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100">
+                            <button type="submit" class="btn btn-primary w-100" id="btn_apply_filter">
                                 <i data-feather="filter" class="me-1"></i>Filter
                             </button>
                         </div>
                         <div class="col-md-2">
-                            <a href="{{ url_for('history') }}" class="btn btn-outline-secondary w-100">
+                            <a href="{{ url_for('history') }}" class="btn btn-outline-secondary w-100" id="btn_clear_filter">
                                 <i data-feather="x" class="me-1"></i>Clear
                             </a>
                         </div>
@@ -177,11 +176,42 @@
                         <i data-feather="list" class="me-2"></i>
                         Service Records ({{ service_history|length }})
                     </h5>
+                    {# Print button temporarily disabled
                     <button class="btn btn-sm btn-outline-primary" onclick="window.print()">
                         <i data-feather="printer" class="me-1"></i>Print
                     </button>
+                    #}
                 </div>
                 <div class="card-body p-0">
+                    {% if not service_history %}
+                    <!-- No Results Message -->
+                    <div class="text-center py-5">
+                        <i data-feather="filter-x" style="width: 48px; height: 48px;" class="text-muted mb-3"></i>
+                        <h5>No Records Found</h5>
+                        <p class="text-muted mb-4">
+                            No service records match your filter criteria.
+                        </p>
+                        <div class="btn-group">
+                            <a href="{{ url_for('history') }}" class="btn btn-outline-secondary">
+                                <i data-feather="x" class="me-1"></i>Clear Filters
+                            </a>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i data-feather="plus" class="me-1"></i>Add Service Record
+                                </button>
+                                <ul class="dropdown-menu">
+                                    {% for car in current_user.cars %}
+                                    <li>
+                                        <a class="dropdown-item" href="{{ url_for('add_service_history', car_id=car.id) }}">
+                                            {{ car.make }} {{ car.model }} {{ car.registration_number }}
+                                        </a>
+                                    </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
                     <div class="table-responsive">
                         <table class="table table-hover mb-0">
                             <thead class="table-light">
@@ -193,19 +223,18 @@
                                     <th>Cost</th>
                                     <th>Provider</th>
                                     <th>Notes</th>
-                                    <th class="no-print">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for history in service_history %}
                                 <tr>
                                     <td>
-                                        <strong>{{ history.service_date.strftime('%m/%d/%Y') }}</strong>
+                                        <strong>{{ history.service_date.strftime('%d/%m/%Y') }}</strong>
                                         <br>
                                         <small class="text-muted">{{ history.service_date.strftime('%A') }}</small>
                                     </td>
                                     <td>
-                                        <strong>{{ history.car }}</strong>
+                                        <strong>{{ history.car.make }} {{ history.car.model }}</strong>
                                         <br>
                                         <small class="text-muted">{{ history.car.registration_number }}</small>
                                     </td>
@@ -225,7 +254,7 @@
                                     </td>
                                     <td>
                                         {% if history.cost %}
-                                            <strong class="text-success">${{ "%.2f"|format(history.cost) }}</strong>
+                                            <strong class="text-success">₹{{ "%.2f"|format(history.cost) }}</strong>
                                         {% else %}
                                             <span class="text-muted">—</span>
                                         {% endif %}
@@ -244,25 +273,12 @@
                                             <span class="text-muted">—</span>
                                         {% endif %}
                                     </td>
-                                    <td class="no-print">
-                                        <div class="btn-group" role="group">
-                                            <a href="{{ url_for('car_services', car_id=history.car_id) }}" 
-                                               class="btn btn-sm btn-outline-primary" 
-                                               title="View car services">
-                                                <i data-feather="calendar"></i>
-                                            </a>
-                                            <a href="{{ url_for('add_service_history', car_id=history.car_id) }}?copy={{ history.id }}" 
-                                               class="btn btn-sm btn-outline-secondary" 
-                                               title="Copy this record">
-                                                <i data-feather="copy"></i>
-                                            </a>
-                                        </div>
-                                    </td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -310,7 +326,7 @@
                 <div class="card-body">
                     {% set monthly_costs = {} %}
                     {% for history in service_history if history.cost %}
-                        {% set month_key = history.service_date.strftime('%Y-%m') %}
+                        {% set month_key = history.service_date.strftime('%m-%Y') %}
                         {% if month_key in monthly_costs %}
                             {% set _ = monthly_costs.update({month_key: monthly_costs[month_key] + history.cost}) %}
                         {% else %}
@@ -321,7 +337,7 @@
                     {% for month, cost in monthly_costs.items() %}
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>{{ month }}</span>
-                        <span class="text-success">${{ "%.2f"|format(cost) }}</span>
+                        <span class="text-success">₹{{ "%.2f"|format(cost) }}</span>
                     </div>
                     {% endfor %}
                 </div>
@@ -351,6 +367,50 @@
 {% endblock %}
 
 {% block scripts %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const serviceTypeSelect = document.getElementById("service_type_ids");
+    const costContainer = document.getElementById("dynamic-cost-fields");
+    const totalCostInput = document.getElementById("total_cost");
+
+    function updateCostFields() {
+        costContainer.innerHTML = "";
+        let total = 0;
+        [...serviceTypeSelect.selectedOptions].forEach((option, index) => {
+            const id = option.value;
+            const label = option.text;
+
+            const div = document.createElement("div");
+            div.classList.add("mb-2");
+
+            div.innerHTML = `
+                <label>Cost for ${label}</label>
+                <input type="number" name="cost_${id}" class="form-control cost-field" min="0" step="0.01" value="0">
+            `;
+
+            costContainer.appendChild(div);
+        });
+
+        attachCostListeners();
+    }
+
+    function attachCostListeners() {
+        const costFields = document.querySelectorAll(".cost-field");
+        costFields.forEach(input => {
+            input.addEventListener("input", () => {
+                let total = 0;
+                costFields.forEach(f => total += parseFloat(f.value || 0));
+                totalCostInput.value = total.toFixed(2);
+            });
+        });
+    }
+
+    serviceTypeSelect.addEventListener("change", updateCostFields);
+});
+</script>
+
+
 <script>
     // Auto-submit filter form when selections change
     document.addEventListener('DOMContentLoaded', function() {

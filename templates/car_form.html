@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }} - Car Service Reminder{% endblock %}
+{% block title %}{{ title }} - Car Service Pro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -98,7 +98,7 @@
                                         {% for error in form.color.errors %}{{ error }}{% endfor %}
                                     </div>
                                 {% endif %}
-                                <div class="form-text">Optional - vehicle color</div>
+                                <div class="form-text">Vehicle color</div>
                             </div>
 
                             <!-- Current Mileage -->
@@ -115,6 +115,40 @@
                                 {% endif %}
                                 <div class="form-text">Current odometer reading</div>
                             </div>
+                            <hr>
+
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i data-feather="car" class="me-2"></i>
+                                    Insurance Information
+                                </h6>
+                            </div>
+
+                            <!-- Insurance Company -->
+                            <div class="col-md-6 mt-2">
+                                <label for="{{ form.insurance_company.id }}" class="form-label">{{ form.insurance_company.label.text }}</label>
+                                {{ form.insurance_company(class="form-control") }}
+                                {% if form.insurance_company.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.insurance_company.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">e.g., Probus, ACKO</div>
+                            </div>
+
+                            <!-- Insurance Expiry Date -->
+                            <div class="col-md-6 mt-2">
+                                <label for="{{ form.expiry_date.id }}" class="form-label">{{ form.expiry_date.label.text }}</label>
+                                {{ form.expiry_date(class="form-control") }}
+                                {% if form.expiry_date %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.expiry_date.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                                <div class="form-text">Insurance Expairy Date</div>
+                            </div>
+
+
                         </div>
 
                         <!-- Form Actions -->

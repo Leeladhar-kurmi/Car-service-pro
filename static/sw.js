@@ -18,7 +18,14 @@ self.addEventListener('install', function(event) {
         caches.open(CACHE_NAME)
             .then(function(cache) {
                 console.log('Opened cache');
-                return cache.addAll(urlsToCache);
+                // Cache each URL individually to handle failures gracefully
+                return Promise.allSettled(
+                    urlsToCache.map(url => 
+                        cache.add(url).catch(err => 
+                            console.warn(`Failed to cache ${url}:`, err)
+                        )
+                    )
+                );
             })
     );
 });
@@ -26,15 +33,33 @@ self.addEventListener('install', function(event) {
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', function(event) {
     event.respondWith(
-        caches.match(event.request)
-            .then(function(response) {
-                // Return cached version or fetch from network
-                if (response) {
-                    return response;
-                }
-                return fetch(event.request);
-            }
-        )
+        // First try the network
+        fetch(event.request)
+            .then(function(networkResponse) {
+                return networkResponse;
+            })
+            .catch(function() {
+                // If network fails, try the cache
+                return caches.match(event.request)
+                    .then(function(response) {
+                        if (response) {
+                            // If we have a cached response, show an offline notification
+                            self.registration.showNotification('Offline Mode', {
+                                body: 'You are viewing cached content. Please check your server connection.',
+                                icon: '/static/icons/icon-192.svg'
+                            });
+                            return response;
+                        }
+                        // If no cached response, show error
+                        return new Response('Application is offline. Please start the server.', {
+                            status: 503,
+                            statusText: 'Service Unavailable',
+                            headers: new Headers({
+                                'Content-Type': 'text/plain'
+                            })
+                        });
+                    });
+            })
     );
 });
 

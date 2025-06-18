@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#007bff">
     <meta name="description" content="Car Service Reminder - Never miss a service appointment">
     
-    <title>{% block title %}Car Service Reminder{% endblock %}</title>
+    <title>{% block title %}Car Service Pro{% endblock %}</title>
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
@@ -24,15 +24,229 @@
     <!-- Feather Icons -->
     <script src="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.js"></script>
     
+    <!-- Multiselection Fields -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    {% block page_specific_js %}{% endblock %}
+    {% block head_scripts %}{% endblock %}
+    
+    <style>
+        /* Server Status Alert Styles */
+        #server-status-alert {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 9999;
+            max-width: 350px;
+            transition: opacity 0.3s ease-in-out;
+            opacity: 0;
+            display: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        #server-status-alert.show {
+            opacity: 1;
+        }
+
+        /* Dropdown Menu Styles */
+        .navbar-nav .dropdown-menu {
+            border: none;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            padding: 12px;
+            min-width: 280px;
+            margin-top: 12px;
+            background: white;
+            right: 0;
+            left: auto;
+        }
+
+        .dropdown-menu::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 24px;
+            width: 12px;
+            height: 12px;
+            background: white;
+            transform: rotate(45deg);
+            box-shadow: -3px -3px 5px rgba(0, 0, 0, 0.04);
+        }
+
+        .dropdown-menu .notifications-header {
+            padding: 8px 16px;
+            margin: -4px -4px 8px -4px;
+            color: #1a1a1a;
+            font-weight: 600;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #f0f0f0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .dropdown-menu .notification-status {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: #e9ecef;
+            color: #495057;
+            margin-left: auto;
+        }
+
+        .dropdown-menu .notification-status.enabled {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .dropdown-item {
+            padding: 10px 16px;
+            color: #495057;
+            font-weight: 500;
+            border-radius: 8px;
+            margin: 2px 4px;
+            display: flex;
+            align-items: center;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+            color: #007bff;
+            transform: translateX(4px);
+        }
+
+        .dropdown-item:active {
+            background-color: #e9ecef;
+        }
+
+        .dropdown-item i, 
+        .dropdown-item svg {
+            width: 16px;
+            height: 16px;
+            margin-right: 12px;
+            stroke-width: 2.5px;
+            flex-shrink: 0;
+        }
+
+        .dropdown-divider {
+            margin: 8px 4px;
+            border-color: #f0f0f0;
+            opacity: 0.7;
+        }
+
+        .enable-notifications-btn {
+            background: #007bff;
+            color: white;
+            border: none;
+            width: calc(100% - 8px);
+            margin: 4px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .enable-notifications-btn:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
+        }
+
+        .enable-notifications-btn:active {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .enable-notifications-btn i,
+        .enable-notifications-btn svg {
+            margin-right: 8px;
+            width: 16px;
+            height: 16px;
+            stroke-width: 2.5px;
+        }
+
+        .logout-item {
+            color: #dc3545 !important;
+            margin-bottom: 4px;
+        }
+
+        .logout-item:hover {
+            background-color: #fff5f5 !important;
+            color: #dc3545 !important;
+        }
+
+        .logout-item i,
+        .logout-item svg {
+            color: #dc3545;
+            stroke: #dc3545;
+        }
+
+        /* User Profile Button in Navbar */
+        .nav-link.dropdown-toggle {
+            display: flex;
+            align-items: center;
+            padding: 6px 12px 6px 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .nav-link.dropdown-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .nav-link.dropdown-toggle img {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            margin-right: 8px;
+            object-fit: cover;
+        }
+
+        .nav-link.dropdown-toggle i,
+        .nav-link.dropdown-toggle svg {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
+            stroke-width: 2px;
+        }
+
+        /* Ensure dropdown is properly positioned */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-menu-end {
+            right: 0;
+            left: auto;
+        }
+    </style>
+    
     {% block head %}{% endblock %}
 </head>
 <body class="{% if current_user.is_authenticated %}user-authenticated{% endif %}">
+    
     <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="{{ url_for('index') }}">
                 <i data-feather="car" class="me-2"></i>
-                Car Service Reminder
+                Car Service Pro
             </a>
             
             {% if current_user.is_authenticated %}
@@ -57,38 +271,61 @@
                             <i data-feather="clock" class="me-1"></i>Service History
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('analytics') }}">
+                            <i data-feather="clock" class="me-1"></i> Analysis
+                        </a>
+                    </li>
                 </ul>
                 
                 <ul class="navbar-nav">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             {% if current_user.profile_image_url %}
-                                <img src="{{ current_user.profile_image_url }}" 
-                                     alt="Profile" 
-                                     class="rounded-circle me-1" 
-                                     style="width: 24px; height: 24px; object-fit: cover;">
+                                <img src="{{ current_user.profile_image_url }}" alt="Profile">
                             {% else %}
-                                <i data-feather="user" class="me-1"></i>
+                                <i data-feather="user"></i>
                             {% endif %}
-                            {{ current_user.full_name }}
+                                <span>{{ current_user.full_name }}</span>
                         </a>
-                        <ul class="dropdown-menu">
+                        <ul class="dropdown-menu dropdown-menu-end">
                             <li>
-                                <div class="dropdown-item-text">
-                                    <small class="text-muted">Notifications</small><br>
-                                    <span id="notification-status" class="badge bg-secondary">Disabled</span>
+                                <div class="notifications-header">
+                                    NOTIFICATIONS
+                                    <span class="notification-status {% if current_user.push_subscription %}enabled{% endif %}">
+                                        {% if current_user.push_subscription %}Enabled{% else %}Disabled{% endif %}
+                                    </span>
                                 </div>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
                             <li>
-                                <button id="notification-toggle" class="dropdown-item btn btn-sm">
-                                    Enable Notifications
-                                </button>
+                                <a class="dropdown-item" href="{{ url_for('settings') }}">
+                                    <i data-feather="settings"></i>
+                                    <span>Settings</span>
+                                </a>
                             </li>
-                            <li><hr class="dropdown-divider"></li>
                             <li>
-                                <a class="dropdown-item" href="{{ url_for('replit_auth.logout') }}">
-                                    <i data-feather="log-out" class="me-1"></i>Logout
+                                <a class="dropdown-item" href="{{ url_for('dashboard') }}">
+                                    <i data-feather="home"></i>
+                                    <span>Dashboard</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('reset_password') }}">
+                                    <i data-feather="reset_password"></i>
+                                    <span>Reset Password</span>
+                                </a>
+                            </li>
+                            <!--<li>
+                                <button id="notification-toggle" class="enable-notifications-btn">
+                                    <i data-feather="bell"></i>
+                                    <span>Enable Notifications</span>
+                                </button>
+                                <li><hr class="dropdown-divider"></li>
+                            </li> -->
+                            <li>
+                                <a class="dropdown-item logout-item" href="{{ url_for('logout') }}">
+                                    <i data-feather="log-out"></i>
+                                    <span>Logout</span>
                                 </a>
                             </li>
                         </ul>
@@ -125,7 +362,7 @@
                 <div class="col-md-6">
                     <p class="text-muted mb-0">
                         <i data-feather="car" class="me-1"></i>
-                        Car Service Reminder &copy; 2024
+                        Car Service Pro &copy; 2025
                     </p>
                 </div>
                 <div class="col-md-6 text-md-end">
@@ -142,6 +379,7 @@
     
     <!-- Custom JS -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/mileage-input.js') }}"></script>
     
     {% if current_user.is_authenticated %}
     <!-- Push Notifications JS -->
@@ -154,5 +392,143 @@
     <script>
         feather.replace();
     </script>
+
+    <!-- Add this before the closing body tag -->
+    <script>
+        let statusCheckTimeout;
+        let alertTimeout;
+        let isAlertVisible = false;
+
+        // Show alert with auto-hide
+        function showStatusAlert(message, type = 'warning') {
+            const alert = document.getElementById('server-status-alert');
+            const messageEl = document.getElementById('server-status-message');
+            
+            // Clear any existing timeouts
+            if (alertTimeout) {
+                clearTimeout(alertTimeout);
+            }
+
+            // Update alert content and style
+            alert.className = `alert alert-${type} alert-dismissible fade`;
+            messageEl.textContent = message;
+            
+            // Show the alert
+            alert.style.display = 'block';
+            // Force reflow
+            alert.offsetHeight;
+            alert.classList.add('show');
+            isAlertVisible = true;
+
+            // Hide after 5 seconds
+            alertTimeout = setTimeout(() => {
+                hideStatusAlert();
+            }, 5000);
+        }
+
+        // Hide alert with animation
+        function hideStatusAlert() {
+            const alert = document.getElementById('server-status-alert');
+            alert.classList.remove('show');
+            
+            // Wait for fade out animation to complete
+            setTimeout(() => {
+                alert.style.display = 'none';
+                isAlertVisible = false;
+            }, 300); // Match the CSS transition duration
+        }
+
+        // Check server status
+        function checkServerStatus() {
+            fetch('/', {
+                method: 'HEAD',
+                cache: 'no-store'
+            }).then(response => {
+                if (response.ok) {
+                    if (isAlertVisible) {
+                        showStatusAlert('Server is online', 'success');
+                        // Stop checking after server is back online
+                        if (statusCheckTimeout) {
+                            clearTimeout(statusCheckTimeout);
+                            statusCheckTimeout = null;
+                        }
+                    }
+                }
+            }).catch(error => {
+                showStatusAlert('Server is offline. You are viewing cached content.');
+                // Keep checking status when offline
+                if (!statusCheckTimeout) {
+                    statusCheckTimeout = setTimeout(checkServerStatus, 30000);
+                }
+            });
+        }
+
+        // Initial check on page load with delay
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(checkServerStatus, 1000);
+        });
+
+        // Check status when page becomes visible
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                checkServerStatus();
+            }
+        });
+
+        // Handle alert dismiss button
+        document.querySelector('#server-status-alert .btn-close').addEventListener('click', () => {
+            hideStatusAlert();
+        });
+    </script>
+
+    <script>
+    // Initialize Feather icons when dropdown is shown
+    document.querySelector('.dropdown').addEventListener('shown.bs.dropdown', function () {
+        feather.replace();
+    });
+
+    // Add hover effect for icons
+    document.querySelectorAll('.dropdown-item, .enable-notifications-btn').forEach(item => {
+        item.addEventListener('mouseenter', function() {
+            const icon = this.querySelector('i, svg');
+            if (icon) {
+                icon.style.stroke = this.classList.contains('logout-item') ? '#dc3545' : '#007bff';
+            }
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            const icon = this.querySelector('i, svg');
+            if (icon) {
+                icon.style.stroke = this.classList.contains('logout-item') ? '#dc3545' : '#495057';
+            }
+        });
+    });
+
+    // Auto-dismiss alerts after 3 to 5 seconds (random within range)
+            document.addEventListener("DOMContentLoaded", function () {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(function(alert) {
+                    const timeout = 5000; //  5000 ms
+                    setTimeout(function () {
+                        alert.classList.remove('show'); // hides the alert with Bootstrap fade
+                        alert.classList.add('hide');
+                    }, timeout);
+                });
+            });
+    </script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('.select2-multiple').select2({
+                placeholder: "Select service types",
+                allowClear: true
+            });
+        });
+    </script>
+
+
+    {% block body_scripts %}{% endblock %}
 </body>
 </html>

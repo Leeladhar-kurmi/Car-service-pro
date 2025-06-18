@@ -46,7 +46,7 @@
                 <i data-feather="calendar" class="position-absolute" style="top: 1rem; right: 1rem; opacity: 0.7;"></i>
             </a>
         </div>
-        
+
         <div class="col-sm-6 col-lg-3">
             <a href="{{ url_for('cars') }}" class="dashboard-widget widget-cars">
                 <h3>{{ user_cars|length }}</h3>
@@ -93,10 +93,10 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h6 class="mb-1">{{ service.service_type.name }}</h6>
-                                <p class="mb-1 text-muted">{{ service.car }}</p>
+                                <p class="mb-1 text-muted">{{ service.car.make }} {{ service.car.model }} {{ service.car.registration_number }}</p>
                                 <small class="text-danger">
                                     {% if service.next_service_date %}
-                                        Due: {{ service.next_service_date.strftime('%m/%d/%Y') }}
+                                        Due: {{ service.next_service_date.strftime('%d/%m/%Y') }}
                                     {% endif %}
                                     {% if service.next_service_mileage %}
                                         at {{ "{:,}".format(service.next_service_mileage) }} miles
@@ -136,10 +136,10 @@
                         <div class="d-flex justify-content-between align-items-start">
                             <div>
                                 <h6 class="mb-1">{{ service.service_type.name }}</h6>
-                                <p class="mb-1 text-muted">{{ service.car }}</p>
+                                <p class="mb-1 text-muted">{{ service.car.make }} {{ service.car.model }} {{ service.car.registration_number }}</p>
                                 <small class="text-warning">
                                     {% if service.next_service_date %}
-                                        Due: {{ service.next_service_date.strftime('%m/%d/%Y') }}
+                                        Due: {{ service.next_service_date.strftime('%d/%m/%Y') }}
                                     {% endif %}
                                     {% if service.next_service_mileage %}
                                         at {{ "{:,}".format(service.next_service_mileage) }} miles
@@ -180,6 +180,7 @@
                                 <tr>
                                     <th>Date</th>
                                     <th>Car</th>
+                                    <th>Registration NUmber</th>
                                     <th>Service</th>
                                     <th>Mileage</th>
                                     <th>Cost</th>
@@ -189,7 +190,8 @@
                                 {% for history in recent_history %}
                                 <tr>
                                     <td>{{ history.service_date.strftime('%m/%d/%Y') }}</td>
-                                    <td>{{ history.car }}</td>
+                                    <td>{{ history.car.make }} {{ history.car.model }}</td>
+                                    <td>{{ history.car.registration_number }}</td>
                                     <td>{{ history.service_type.name }}</td>
                                     <td>
                                         {% if history.mileage %}
@@ -200,7 +202,7 @@
                                     </td>
                                     <td>
                                         {% if history.cost %}
-                                            ${{ "%.2f"|format(history.cost) }}
+                                            ₹{{ "%.2f"|format(history.cost) }}
                                         {% else %}
                                             -
                                         {% endif %}
@@ -242,7 +244,7 @@
                                 <div class="card-body">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div>
-                                            <h6 class="card-title mb-1">{{ car }}</h6>
+                                            <h6 class="card-title mb-1">{{ car.make }} {{ car.model }}</h6>
                                             <p class="card-text text-muted mb-2">
                                                 {{ car.registration_number }}
                                                 {% if car.color %} • {{ car.color }}{% endif %}

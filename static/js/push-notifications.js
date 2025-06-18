@@ -325,3 +325,45 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    const serviceTypeSelect = document.getElementById("service_type_ids");
+    const costContainer = document.getElementById("dynamic-cost-fields");
+    const totalCostInput = document.getElementById("total_cost");
+
+    function updateCostFields() {
+        costContainer.innerHTML = "";
+        let total = 0;
+        [...serviceTypeSelect.selectedOptions].forEach((option, index) => {
+            const id = option.value;
+            const label = option.text;
+
+            const div = document.createElement("div");
+            div.classList.add("mb-2");
+
+            div.innerHTML = `
+                <label>Cost for ${label}</label>
+                <input type="number" name="cost_${id}" class="form-control cost-field" min="0" step="0.01" value="0">
+            `;
+
+            costContainer.appendChild(div);
+        });
+
+        attachCostListeners();
+    }
+
+    function attachCostListeners() {
+        const costFields = document.querySelectorAll(".cost-field");
+        costFields.forEach(input => {
+            input.addEventListener("input", () => {
+                let total = 0;
+                costFields.forEach(f => total += parseFloat(f.value || 0));
+                totalCostInput.value = total.toFixed(2);
+            });
+        });
+    }
+
+    serviceTypeSelect.addEventListener("change", updateCostFields);
+});
+

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Services for {{ car }} - Car Service Reminder{% endblock %}
+{% block title %}Services for {{ car.model }}•{{car.registration_number}} - Car Service Pro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -12,7 +12,7 @@
                     <h1 class="mb-1">Service Schedules</h1>
                     <p class="text-muted mb-0">
                         <i data-feather="car" class="me-1"></i>
-                        {{ car }} • {{ car.registration_number }}
+                        {{ car.make }} {{ car.model }} • {{ car.registration_number }}
                         {% if car.color %} • {{ car.color }}{% endif %}
                     </p>
                 </div>
@@ -35,19 +35,19 @@
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-sm-3">
-                            <h5 class="text-primary">{{ "{:,}".format(car.current_mileage) }}</h5>
+                            <h5 class="text-primary"><b>{{ "{:,}".format(car.current_mileage) }}</b></h5>
                             <small class="text-muted">Current Miles</small>
                         </div>
                         <div class="col-sm-3">
-                            <h5 class="text-danger">{{ services|selectattr('status', 'equalto', 'overdue')|list|length }}</h5>
+                            <h5 class="text-danger"><b>{{ services|selectattr('status', 'equalto', 'overdue')|list|length }}</b></h5>
                             <small class="text-muted">Overdue</small>
                         </div>
                         <div class="col-sm-3">
-                            <h5 class="text-warning">{{ services|selectattr('status', 'equalto', 'due_soon')|list|length }}</h5>
+                            <h5 class="text-warning"><b>{{ services|selectattr('status', 'equalto', 'due_soon')|list|length }}</b></h5>    
                             <small class="text-muted">Due Soon</small>
                         </div>
                         <div class="col-sm-3">
-                            <h5 class="text-success">{{ services|selectattr('status', 'equalto', 'upcoming')|list|length }}</h5>
+                            <h5 class="text-success"><b>{{ services|selectattr('status', 'equalto', 'upcoming')|list|length }}</b></h5>
                             <small class="text-muted">Upcoming</small>
                         </div>
                     </div>
@@ -104,7 +104,6 @@
                                 <h6 class="mb-1">{{ service.service_type.name }}</h6>
                                 <small class="text-muted">{{ service.service_type.description }}</small>
                             </div>
-                            
                             <div class="col-md-3">
                                 <div class="small text-muted mb-1">Intervals:</div>
                                 <div>
@@ -121,7 +120,7 @@
                                 <div class="small text-muted mb-1">Next Service:</div>
                                 <div>
                                     {% if service.next_service_date %}
-                                        <div class="small">{{ service.next_service_date.strftime('%m/%d/%Y') }}</div>
+                                        <div class="small">{{ service.next_service_date.strftime('%d/%m/%Y') }}</div>
                                     {% endif %}
                                     {% if service.next_service_mileage %}
                                         <div class="small">{{ "{:,}".format(service.next_service_mileage) }} miles</div>
@@ -177,7 +176,7 @@
                                 <small class="text-muted">
                                     Last service: 
                                     {% if service.last_service_date %}
-                                        {{ service.last_service_date.strftime('%m/%d/%Y') }}
+                                        {{ service.last_service_date.strftime('%d/%m/%Y') }}
                                     {% endif %}
                                     {% if service.last_service_mileage %}
                                         at {{ "{:,}".format(service.last_service_mileage) }} miles

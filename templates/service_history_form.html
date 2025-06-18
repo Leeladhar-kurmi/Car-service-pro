@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+
+{% block title %}Service History - Car Service Pro{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="mb-1">Service History</h1>
+                    <p class="text-muted mb-0">
+                        <i data-feather="car" class="me-1"></i>
+                        {{ car.make }} {{ car.model }} {{ car.registration_number }} - Record completed maintenance service
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ url_for('car_services', car_id=car.id) }}" class="btn btn-outline-secondary">
+                        <i data-feather="arrow-left" class="me-1"></i>Back to Services
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i data-feather="check-circle" class="me-2"></i>Service Record
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" class="needs-validation" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <div class="row g-3">
+                            
+                            <!-- Service Type -->
+                            <div class="form-group col-md-12">
+                                <label class="form-label mb-2">{{ form.service_type_ids.label }}</label>
+                                <div class="row border rounded p-3 m-1">
+                                    {% for subfield in form.service_type_ids %}
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2 d-flex align-items-center">
+                                            <input type="checkbox"
+                                                class="form-check-input me-2 service-checkbox"
+                                                id="stype_{{ subfield.data }}"
+                                                name="{{ subfield.name }}"
+                                                value="{{ subfield.data }}"
+                                                data-id="{{ subfield.data }}"
+                                                data-label="{{ subfield.label.text }}"
+                                                {% if subfield.checked %}checked{% endif %}>
+                                            <label class="form-check-label" for="stype_{{ subfield.data }}">
+                                                {{ subfield.label.text }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Interval Fields -->
+                            <div class="form-group col-md-12 mt-3">
+                                <label class="form-label mb-2">Service Intervals</label>
+                                <div class="row border rounded p-3" id="interval-fields"></div>
+                            </div>
+
+
+                            
+                            <!-- Service Date -->
+                            <div class="col-md-6">
+                                <label for="{{ form.service_date.id }}" class="form-label">{{ form.service_date.label.text }}</label>
+                                {{ form.service_date(class="form-control") }}
+                                {% if form.service_date.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.service_date.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Mileage -->
+                            <div class="col-md-6">
+                                <label for="{{ form.mileage.id }}" class="form-label">{{ form.mileage.label.text }}</label>
+                                <div class="input-group">
+                                    {{ form.mileage(class="form-control") }}
+                                    <span class="input-group-text">miles</span>
+                                </div>
+                                {% if form.mileage.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.mileage.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Cost -->
+                            <div class="col-md-6">
+                                <label for="{{ form.cost.id }}" class="form-label">{{ form.cost.label.text }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    {{ form.cost(class="form-control", readonly=true) }}
+                                </div>
+                                {% if form.cost.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.cost.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Service Provider -->
+                            <div class="col-md-6">
+                                <label for="{{ form.service_provider.id }}" class="form-label">{{ form.service_provider.label.text }}</label>
+                                {{ form.service_provider(class="form-control") }}
+                                {% if form.service_provider.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.service_provider.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Notes -->
+                            <div class="col-12">
+                                <label for="{{ form.notes.id }}" class="form-label">{{ form.notes.label.text }}</label>
+                                {{ form.notes(class="form-control", rows="3") }}
+                                {% if form.notes.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {% for error in form.notes.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="row mt-4">
+                            <div class="col-12 d-flex justify-content-end">
+                                <a href="{{ url_for('car_services', car_id=car.id) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i data-feather="save" class="me-1"></i>Save Record
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="card mt-4 border-info">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i data-feather="help-circle" class="me-2"></i>Service Record Tips
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li><strong>Service date:</strong> Enter the actual date the service was performed</li>
+                        <li><strong>Mileage:</strong> This will update your car's current mileage if higher</li>
+                        <li><strong>Cost tracking:</strong> Keep records of maintenance expenses</li>
+                        <li><strong>Service provider:</strong> Remember who did the work for future reference</li>
+                        <li><strong>Notes:</strong> Record any issues found or work done</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.getElementsByClassName('needs-validation');
+            Array.prototype.forEach.call(forms, function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const serviceTypeSelect = document.getElementById("service_type_ids");
+    const costContainer = document.getElementById("dynamic-cost-fields");
+    const totalCostInput = document.getElementById("total_cost");
+
+    function updateCostFields() {
+        costContainer.innerHTML = "";
+        let total = 0;
+        [...serviceTypeSelect.selectedOptions].forEach((option, index) => {
+            const id = option.value;
+            const label = option.text;
+
+            const div = document.createElement("div");
+            div.classList.add("mb-2");
+
+            div.innerHTML = `
+                <label>Cost for ${label}</label>
+                <input type="number" name="cost_${id}" class="form-control cost-field" min="0" step="0.01" value="0">
+            `;
+
+            costContainer.appendChild(div);
+        });
+
+        attachCostListeners();
+    }
+
+    function attachCostListeners() {
+        const costFields = document.querySelectorAll(".cost-field");
+        costFields.forEach(input => {
+            input.addEventListener("input", () => {
+                let total = 0;
+                costFields.forEach(f => total += parseFloat(f.value || 0));
+                totalCostInput.value = total.toFixed(2);
+            });
+        });
+    }
+
+    serviceTypeSelect.addEventListener("change", updateCostFields);
+});
+</script>
+
+<script>
+    const serviceTypeIntervals = {{ service_type_intervals | tojson }};
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkboxes = document.querySelectorAll('.service-checkbox');
+        const intervalFieldsContainer = document.getElementById('interval-fields');
+        const totalCostInput = document.getElementById("{{ form.cost.id }}");
+
+        function updateTotalCost() {
+            const costInputs = intervalFieldsContainer.querySelectorAll('input[name^="service_cost_"]');
+            let total = 0;
+
+            costInputs.forEach(input => {
+                const val = parseFloat(input.value);
+                if (!isNaN(val)) {
+                    total += val;
+                }
+            });
+
+            if (totalCostInput) {
+                totalCostInput.value = total.toFixed(2);
+            }
+        }
+
+        function updateIntervalFields() {
+            intervalFieldsContainer.innerHTML = ''; // Clear old fields
+
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    const id = cb.dataset.id;
+                    const label = cb.dataset.label;
+                    const interval = serviceTypeIntervals[id];
+
+                    if (interval) {
+                        const mileage = interval.mileage || '';
+                        const months = interval.months || '';
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'col-md-6 mb-3';
+
+                        wrapper.innerHTML = `
+                            <label class="form-label"><strong>${label}</strong></label>
+
+                            <div class="input-group mb-1">
+                                <input type="number" class="form-control" name="interval_mileage_${id}" value="${mileage}" placeholder="Mileage Interval">
+                                <span class="input-group-text">Miles</span>
+                            </div>
+
+                            <div class="input-group mb-1">
+                                <input type="number" class="form-control" name="interval_months_${id}" value="${months}" placeholder="Time Interval">
+                                <span class="input-group-text">Months</span>
+                            </div>
+
+                            <div class="input-group">
+                                <input type="number" step="0.01" class="form-control service-cost-input" name="service_cost_${id}" placeholder="Service Cost">
+                                <span class="input-group-text">₹</span>
+                            </div>
+                        `;
+
+                        intervalFieldsContainer.appendChild(wrapper);
+                    }
+                }
+            });
+            // Attach cost input event after fields are created
+            intervalFieldsContainer.querySelectorAll('.service-cost-input').forEach(input => {
+                input.addEventListener('input', updateTotalCost);
+            });
+
+            updateTotalCost(); // Initial update
+        }
+
+        // Attach change event
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateIntervalFields);
+        });
+
+        // Initial call if anything is already checked
+        updateIntervalFields();
+    });
+</script>
+
+
+{% endblock %}

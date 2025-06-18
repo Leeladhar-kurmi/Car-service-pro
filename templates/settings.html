@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Car Service Pro{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h1 class="mb-4">
+        <i data-feather="settings" class="me-2"></i>
+        Settings
+    </h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Notification Preferences -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Notification Preferences</h5>
+                    <form method="POST" action="{{ url_for('save_settings') }}">
+                        <div class="mb-3">
+                            <label class="form-label">Reminder Type</label>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" name="reminder_type" value="email" 
+                                       id="email_only" {{ 'checked' if current_user.reminder_type == 'email' }}>
+                                <label class="form-check-label" for="email_only">Email Only</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" name="reminder_type" value="push" 
+                                       id="push_only" {{ 'checked' if current_user.reminder_type == 'push' }}>
+                                <label class="form-check-label" for="push_only">Push Notifications Only</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="radio" class="form-check-input" name="reminder_type" value="both" 
+                                       id="both" {{ 'checked' if current_user.reminder_type == 'both' }}>
+                                <label class="form-check-label" for="both">Both Email and Push Notifications</label>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Reminder Schedule</label>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="reminder_days[]" value="7" 
+                                       id="days_7" {{ 'checked' if 7 in current_user.reminder_days }}>
+                                <label class="form-check-label" for="days_7">7 days before due date</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="reminder_days[]" value="3" 
+                                       id="days_3" {{ 'checked' if 3 in current_user.reminder_days }}>
+                                <label class="form-check-label" for="days_3">3 days before due date</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="reminder_days[]" value="1" 
+                                       id="days_1" {{ 'checked' if 1 in current_user.reminder_days }}>
+                                <label class="form-check-label" for="days_1">1 day before due date</label>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Save Preferences</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Email Settings -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Email Settings</h5>
+                    <form method="POST" action="{{ url_for('update_email') }}">
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="email" 
+                                   value="{{ current_user.email }}" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Update Email</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Push Notification Settings -->
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Push Notifications</h5>
+                    <p class="card-text">
+                        {% if current_user.push_subscription %}
+                            Push notifications are enabled for this browser.
+                            <button class="btn btn-danger btn-sm" onclick="unsubscribeFromPush()">
+                                Disable Push Notifications
+                            </button>
+                        {% else %}
+                            <button class="btn btn-primary" onclick="subscribeToPush()">
+                                Enable Push Notifications
+                            </button>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Quick Tips -->
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i data-feather="info" class="me-2"></i>
+                        Quick Tips
+                    </h5>
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2">
+                            <i data-feather="check-circle" class="text-success me-2"></i>
+                            Enable both email and push notifications for the best experience
+                        </li>
+                        <li class="mb-2">
+                            <i data-feather="check-circle" class="text-success me-2"></i>
+                            Set multiple reminder days to never miss a service
+                        </li>
+                        <li>
+                            <i data-feather="check-circle" class="text-success me-2"></i>
+                            Keep your email address up to date for reliable notifications
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function subscribeToPush() {
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: '{{ vapid_public_key }}'
+        });
+        
+        // Send subscription to server
+        await fetch('/api/push-subscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(subscription)
+        });
+        
+        location.reload();
+    } catch (err) {
+        console.error('Error subscribing to push notifications:', err);
+        alert('Failed to enable push notifications. Please try again.');
+    }
+}
+
+async function unsubscribeFromPush() {
+    try {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+            await subscription.unsubscribe();
+            await fetch('/api/push-subscription', {
+                method: 'DELETE'
+            });
+        }
+        location.reload();
+    } catch (err) {
+        console.error('Error unsubscribing from push notifications:', err);
+        alert('Failed to disable push notifications. Please try again.');
+    }
+}
+</script>
+{% endblock %} 

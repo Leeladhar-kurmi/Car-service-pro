@@ -1,0 +1,60 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+ENV/
+env/
+.venv/
+car-venv/
+
+# VS Code settings
+.vscode/
+
+# macOS system files
+.DS_Store
+
+# Environment variables
+.env
+.env.*
+
+# Flask Migrate
+migrations/versions/*.pyc
+migrations/__pycache__/
+migrations/*.pyc
+
+# SQLite DB files (if used)
+*.sqlite3
+instance/
+*.db
+
+# Logs
+*.log
+
+# Pytest cache
+.pytest_cache/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Jupyter notebooks (if any)
+.ipynb_checkpoints/
+
+# Uploads/media/temp files
+uploads/
+media/
+tmp/
+temp/
+*.bak
+*.swp
+
+# Node (if you use JS tools)
+node_modules/
+
+# Compiled files or dist
+dist/
+build/
+*.egg-info/

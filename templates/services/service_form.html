@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }} - Car Service Reminder{% endblock %}
+{% block title %}{{ title }} - Car Service Pro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -12,7 +12,7 @@
                     <h1 class="mb-1">{{ title }}</h1>
                     <p class="text-muted mb-0">
                         <i data-feather="car" class="me-1"></i>
-                        {{ car }}
+                        {{ car.make }} {{ car.model }} {{ car.registration_number }}
                         {% if 'Schedule' in title %}
                             - Configure maintenance intervals and reminders
                         {% else %}
@@ -28,7 +28,6 @@
             </div>
         </div>
     </div>
-
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card">
@@ -47,16 +46,35 @@
                         {{ form.hidden_tag() }}
                         
                         <div class="row g-3">
+                            
                             <!-- Service Type -->
-                            <div class="col-12">
-                                <label for="{{ form.service_type_id.id }}" class="form-label">{{ form.service_type_id.label.text }}</label>
-                                {{ form.service_type_id(class="form-select") }}
-                                {% if form.service_type_id.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.service_type_id.errors %}{{ error }}{% endfor %}
+                            <div class="form-group col-md-12">
+                                <label class="form-label mb-2">{{ form.service_type_ids.label }}</label>
+                                <div class="row border rounded p-3 m-1">
+                                    {% for subfield in form.service_type_ids %}
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2 d-flex align-items-center">
+                                            <input type="checkbox"
+                                                class="form-check-input me-2 service-checkbox"
+                                                id="stype_{{ subfield.data }}"
+                                                name="{{ subfield.name }}"
+                                                value="{{ subfield.data }}"
+                                                data-id="{{ subfield.data }}"
+                                                data-label="{{ subfield.label.text }}"
+                                                {% if subfield.checked %}checked{% endif %}>
+                                            <label class="form-check-label" for="stype_{{ subfield.data }}">
+                                                {{ subfield.label.text }}
+                                            </label>
+                                        </div>
                                     </div>
-                                {% endif %}
-                                <div class="form-text">Select the type of service to track</div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Dynamic Interval Fields -->
+                            <div class="form-group col-md-12 mt-3">
+                                <label class="form-label mb-2">Service Intervals</label>
+                                <div class="row border rounded p-3" id="interval-fields"></div>
                             </div>
 
                             {% if 'Schedule' in title %}
@@ -70,36 +88,6 @@
                                     <i data-feather="info" class="me-2"></i>
                                     Set at least one interval (time or mileage) to schedule reminders.
                                 </div>
-                            </div>
-
-                            <!-- Interval Months -->
-                            <div class="col-md-6">
-                                <label for="{{ form.interval_months.id }}" class="form-label">{{ form.interval_months.label.text }}</label>
-                                <div class="input-group">
-                                    {{ form.interval_months(class="form-control") }}
-                                    <span class="input-group-text">months</span>
-                                </div>
-                                {% if form.interval_months.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.interval_months.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                                <div class="form-text">How often by time (optional)</div>
-                            </div>
-
-                            <!-- Interval Mileage -->
-                            <div class="col-md-6">
-                                <label for="{{ form.interval_mileage.id }}" class="form-label">{{ form.interval_mileage.label.text }}</label>
-                                <div class="input-group">
-                                    {{ form.interval_mileage(class="form-control") }}
-                                    <span class="input-group-text">miles</span>
-                                </div>
-                                {% if form.interval_mileage.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.interval_mileage.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                                <div class="form-text">How often by mileage (optional)</div>
                             </div>
 
                             <!-- Last Service Info -->
@@ -172,11 +160,11 @@
 
                             <!-- Service Date -->
                             <div class="col-md-6">
-                                <label for="{{ form.service_date.id }}" class="form-label">{{ form.service_date.label.text }}</label>
-                                {{ form.service_date(class="form-control") }}
-                                {% if form.service_date.errors %}
+                                <label for="{{ form.last_service_date.id }}" class="form-label">{{ form.last_service_date.label.text }}</label>
+                                {{ form.last_service_date(class="form-control") }}
+                                {% if form.last_service_date.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {% for error in form.service_date.errors %}{{ error }}{% endfor %}
+                                        {% for error in form.last_service_date.errors %}{{ error }}{% endfor %}
                                     </div>
                                 {% endif %}
                                 <div class="form-text">When was the service performed?</div>
@@ -184,14 +172,14 @@
 
                             <!-- Mileage -->
                             <div class="col-md-6">
-                                <label for="{{ form.mileage.id }}" class="form-label">{{ form.mileage.label.text }}</label>
+                                <label for="{{ form.last_service_mileage.id }}" class="form-label">{{ form.last_service_mileage.label.text }}</label>
                                 <div class="input-group">
-                                    {{ form.mileage(class="form-control") }}
+                                    {{ form.last_service_mileage(class="form-control") }}
                                     <span class="input-group-text">miles</span>
                                 </div>
-                                {% if form.mileage.errors %}
+                                {% if form.last_service_mileage.errors %}
                                     <div class="invalid-feedback d-block">
-                                        {% for error in form.mileage.errors %}{{ error }}{% endfor %}
+                                        {% for error in form.last_service_mileage.errors %}{{ error }}{% endfor %}
                                     </div>
                                 {% endif %}
                                 <div class="form-text">Odometer reading at service time</div>
@@ -201,7 +189,7 @@
                             <div class="col-md-6">
                                 <label for="{{ form.cost.id }}" class="form-label">{{ form.cost.label.text }}</label>
                                 <div class="input-group">
-                                    <span class="input-group-text">$</span>
+                                    <span class="input-group-text">₹</span>
                                     {{ form.cost(class="form-control") }}
                                 </div>
                                 {% if form.cost.errors %}
@@ -209,7 +197,7 @@
                                         {% for error in form.cost.errors %}{{ error }}{% endfor %}
                                     </div>
                                 {% endif %}
-                                <div class="form-text">Total cost of service (optional)</div>
+                                <div class="form-text">Total cost of service</div>
                             </div>
 
                             <!-- Service Provider -->
@@ -325,7 +313,7 @@
         });
 
         // Service type change handler - populate defaults
-        const serviceTypeSelect = document.getElementById('service_type_id');
+        const serviceTypeSelect = document.getElementById('service_type_ids');
         if (serviceTypeSelect) {
             serviceTypeSelect.addEventListener('change', function() {
                 populateServiceDefaults(this.value);
@@ -353,5 +341,62 @@
             window.populateServiceDefaults(serviceTypeId);
         }
     }
+
 </script>
+
+
+<script>
+    const serviceTypeIntervals = {{ service_type_intervals | tojson }};
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const checkboxes = document.querySelectorAll('.service-checkbox');
+        const intervalFieldsContainer = document.getElementById('interval-fields');
+
+        function updateIntervalFields() {
+            intervalFieldsContainer.innerHTML = ''; // Clear old fields
+
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    const id = cb.dataset.id;
+                    const label = cb.dataset.label;
+                    const interval = serviceTypeIntervals[id];
+
+                    if (interval) {
+                        const mileage = interval.mileage || '';
+                        const months = interval.months || '';
+
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'col-md-6 mb-3';
+
+                        wrapper.innerHTML = `
+                            <label class="form-label"><strong>${label}</strong></label>
+
+                            <div class="input-group mb-1">
+                                <input type="number" class="form-control" name="interval_mileage_${id}" value="${mileage}" placeholder="Mileage Interval">
+                                <span class="input-group-text">Miles</span>
+                            </div>
+
+                            <div class="input-group">
+                                <input type="number" class="form-control" name="interval_months_${id}" value="${months}" placeholder="Time Interval">
+                                <span class="input-group-text">Months</span>
+                            </div>
+                        `;
+
+                        intervalFieldsContainer.appendChild(wrapper);
+                    }
+                }
+            });
+        }
+
+        // Attach change event
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', updateIntervalFields);
+        });
+
+        // Initial call if anything is already checked
+        updateIntervalFields();
+    });
+</script>
+
+
 {% endblock %}

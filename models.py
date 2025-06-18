@@ -1,184 +1,310 @@
 from datetime import datetime, timedelta
-from app import db
-from flask_dance.consumer.storage.sqla import OAuthConsumerMixin
+from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from sqlalchemy import UniqueConstraint
+from dateutil.relativedelta import relativedelta
+from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import func
 
+# Initialize SQLAlchemy
+db = SQLAlchemy()
 
-# (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
 class User(UserMixin, db.Model):
+    """User model for authentication and profile"""
     __tablename__ = 'users'
-    id = db.Column(db.String, primary_key=True)
-    email = db.Column(db.String, unique=True, nullable=True)
-    first_name = db.Column(db.String, nullable=True)
-    last_name = db.Column(db.String, nullable=True)
+    id = db.Column(db.String(36), primary_key=True)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128))
+    first_name = db.Column(db.String(50))
+    last_name = db.Column(db.String(50))
     profile_image_url = db.Column(db.String, nullable=True)
-    push_subscription = db.Column(db.Text, nullable=True)  # JSON string for push notifications
-
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime,
-                           default=datetime.now,
-                           onupdate=datetime.now)
-
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Notification preferences
+    reminder_type = db.Column(db.String(20), default='email')  # 'email', 'push', 'both'
+    reminder_days = db.Column(db.JSON, default=lambda: [7, 3, 1])  # Days before service to send reminder
+    push_subscription = db.Column(db.JSON)  # Web Push subscription info
+    
     # Relationships
-    cars = db.relationship('Car', backref='owner', lazy=True, cascade='all, delete-orphan')
+    cars = db.relationship('Car', backref='user', lazy=True, cascade='all, delete-orphan')
     
     @property
     def full_name(self):
         if self.first_name and self.last_name:
             return f"{self.first_name} {self.last_name}"
-        elif self.first_name:
-            return self.first_name
-        elif self.last_name:
-            return self.last_name
-        else:
-            return self.email or "User"
-
-
-# (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
-class OAuth(OAuthConsumerMixin, db.Model):
-    user_id = db.Column(db.String, db.ForeignKey(User.id))
-    browser_session_key = db.Column(db.String, nullable=False)
-    user = db.relationship(User)
-
-    __table_args__ = (UniqueConstraint(
-        'user_id',
-        'browser_session_key',
-        'provider',
-        name='uq_user_browser_session_key_provider',
-    ),)
+        return self.email
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+    
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+    
+    def __repr__(self):
+        return f'<User {self.email}>'
 
 
 class Car(db.Model):
+    """Car model for storing vehicle information"""
     __tablename__ = 'cars'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.String, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     make = db.Column(db.String(50), nullable=False)
     model = db.Column(db.String(50), nullable=False)
+    color = db.Column(db.String(50), nullable=False)
     year = db.Column(db.Integer, nullable=False)
-    registration_number = db.Column(db.String(20), nullable=False)
-    color = db.Column(db.String(30), nullable=True)
-    current_mileage = db.Column(db.Integer, default=0)
+    nickname = db.Column(db.String(50))
+    vin = db.Column(db.String(17))
+    current_mileage = db.Column(db.Integer)
+    registration_number = db.Column(db.String(100), unique=True, nullable=False)
+    insurance_company = db.Column(db.String(50))
+    expiry_date = db.Column(db.Date)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-
     # Relationships
     services = db.relationship('Service', backref='car', lazy=True, cascade='all, delete-orphan')
     service_history = db.relationship('ServiceHistory', backref='car', lazy=True, cascade='all, delete-orphan')
 
-    def __str__(self):
-        return f"{self.year} {self.make} {self.model}"
+
+    def __repr__(self):
+        return f'<Car {self.year} {self.make} {self.model}>'
+    
+    def total_service_cost(self):
+        return db.session.query(func.sum(ServiceHistory.cost)).filter(
+            ServiceHistory.car_id == self.id
+        ).scalar() or 0
+    
+    def last_service_date(self):
+        return db.session.query(func.max(ServiceHistory.service_date)).filter(
+            ServiceHistory.car_id == self.id
+        ).scalar()
 
 
 class ServiceType(db.Model):
+    """Service type model for predefined service types"""
     __tablename__ = 'service_types'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False, unique=True)
-    description = db.Column(db.Text, nullable=True)
-    default_interval_months = db.Column(db.Integer, default=6)
-    default_interval_mileage = db.Column(db.Integer, default=5000)
+    description = db.Column(db.Text)
+    default_interval_months = db.Column(db.Integer)
+    default_interval_mileage = db.Column(db.Integer)
     
-    created_at = db.Column(db.DateTime, default=datetime.now)
-
-    # Relationships
-    services = db.relationship('Service', backref='service_type', lazy=True)
-    service_history = db.relationship('ServiceHistory', backref='service_type', lazy=True)
-
-    def __str__(self):
-        return self.name
+    def __repr__(self):
+        return f'<ServiceType {self.name}>'
+    
+    def average_cost(self, user_id=None):
+        query = db.session.query(func.avg(ServiceHistory.cost)).join(
+            Car
+        ).filter(
+            ServiceHistory.service_type_id == self.id
+        )
+        if user_id:
+            query = query.filter(Car.user_id == user_id)
+        return query.scalar() or 0
 
 
 class Service(db.Model):
+    """Service model for scheduled services with interval tracking"""
     __tablename__ = 'services'
     id = db.Column(db.Integer, primary_key=True)
     car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
     service_type_id = db.Column(db.Integer, db.ForeignKey('service_types.id'), nullable=False)
     
-    # Service intervals
-    interval_months = db.Column(db.Integer, nullable=True)
-    interval_mileage = db.Column(db.Integer, nullable=True)
+    # Interval Configuration
+    interval_months = db.Column(db.Integer, nullable=False, default=12)
+    interval_mileage = db.Column(db.Integer, nullable=False, default=10000)
+    notify_days_before = db.Column(db.Integer, nullable=False, default=7)  # Default 1 week notice
     
-    # Last service details
-    last_service_date = db.Column(db.Date, nullable=True)
-    last_service_mileage = db.Column(db.Integer, nullable=True)
+    # Last Service Information
+    last_service_date = db.Column(db.Date)
+    last_service_mileage = db.Column(db.Integer)
+    last_service_cost = db.Column(db.Float)
+    last_service_notes = db.Column(db.Text)
     
-    # Next service calculation
-    next_service_date = db.Column(db.Date, nullable=True)
-    next_service_mileage = db.Column(db.Integer, nullable=True)
+    # Next Service Projections
+    next_service_date = db.Column(db.Date)
+    next_service_mileage = db.Column(db.Integer)
     
-    # Notification settings
-    notify_days_before = db.Column(db.Integer, default=7)
-    notification_sent = db.Column(db.Boolean, default=False)
-    
+    # Additional Fields
     is_active = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.now)
-    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now)
-
-    def calculate_next_service(self):
-        """Calculate next service date and mileage based on intervals"""
-        if self.last_service_date and self.interval_months:
-            self.next_service_date = self.last_service_date + timedelta(days=self.interval_months * 30)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    service_type = db.relationship('ServiceType', backref='services')
+    reminders = db.relationship('ServiceReminder', backref='service', lazy=True, cascade='all, delete-orphan')
+    
+    def __init__(self, **kwargs):
+        super(Service, self).__init__(**kwargs)
+        # Ensure intervals have default values
+        if self.interval_months is None:
+            if self.service_type and self.service_type.default_interval_months:
+                self.interval_months = self.service_type.default_interval_months
+            else:
+                self.interval_months = 12  # Default to 12 months
         
-        if self.last_service_mileage and self.interval_mileage:
-            self.next_service_mileage = self.last_service_mileage + self.interval_mileage
-
-    def is_due(self):
-        """Check if service is due based on date or mileage"""
-        today = datetime.now().date()
-        current_mileage = self.car.current_mileage
-        
-        # Check date-based due
-        if self.next_service_date and self.next_service_date <= today:
-            return True
-            
-        # Check mileage-based due
-        if self.next_service_mileage and current_mileage >= self.next_service_mileage:
-            return True
-            
-        return False
-
-    def is_due_soon(self):
-        """Check if service is due within notification period"""
-        today = datetime.now().date()
-        current_mileage = self.car.current_mileage
-        
-        # Check date-based due soon
-        if self.next_service_date:
-            due_date = self.next_service_date - timedelta(days=self.notify_days_before)
-            if today >= due_date:
-                return True
-        
-        # Check mileage-based due soon (within 200 miles of due mileage)
-        if self.next_service_mileage and current_mileage >= (self.next_service_mileage - 200):
-            return True
-            
-        return False
-
-    @property
-    def status(self):
-        """Get current service status"""
-        if self.is_due():
-            return 'overdue'
-        elif self.is_due_soon():
-            return 'due_soon'
+        if self.interval_mileage is None:
+            if self.service_type and self.service_type.default_interval_mileage:
+                self.interval_mileage = self.service_type.default_interval_mileage
+            else:
+                self.interval_mileage = 10000  # Default to 10,000 miles
+    
+    def update_schedule(self, current_mileage=None):
+        """Update next service dates based on intervals"""
+        # Date-based schedule
+        if self.last_service_date and self.interval_months is not None:
+            self.next_service_date = self.last_service_date + relativedelta(months=self.interval_months)
         else:
-            return 'upcoming'
+            self.next_service_date = None
+
+        # Mileage-based schedule
+        if self.last_service_mileage is not None and self.interval_mileage is not None:
+            self.next_service_mileage = self.last_service_mileage + self.interval_mileage
+        else:
+            self.next_service_mileage = None
+
+        # Create reminders only if next date is valid and we have a car
+        if self.next_service_date and self.notify_days_before and self.car_id:
+            self.create_reminders()
+
+        return self
+
+    
+    def create_reminders(self):
+        """Create reminders based on user preferences"""
+        # Clear existing pending reminders
+        ServiceReminder.query.filter_by(
+            service_id=self.id,
+            status='pending'
+        ).delete()
+        
+        # Get the car with user loaded
+        car = Car.query.get(self.car_id)
+        if not car or not car.user:
+            return  # Can't create reminders without a user
+        
+        # Get user's reminder preferences
+        user = car.user
+        reminder_days = user.reminder_days if user.reminder_days else [7, 3, 1]
+        
+        # Create new reminders
+        for days in sorted(reminder_days, reverse=True):
+            if days <= self.notify_days_before:
+                ServiceReminder.create_reminder(self, days)
+        
+    def record_service(self, service_date, mileage, cost=None, notes=None):
+        """Record a completed service and update schedule"""
+        self.last_service_date = service_date
+        self.last_service_mileage = mileage
+        self.last_service_cost = cost
+        self.last_service_notes = notes
+        self.update_schedule()
+        
+        # Create service history entry
+        history = ServiceHistory(
+            car_id=self.car_id,
+            service_type_id=self.service_type_id,
+            service_date=service_date,
+            mileage=mileage,
+            cost=cost,
+            notes=notes
+        )
+        db.session.add(history)
+        return self
+
+
+    def get_status(self, current_mileage=None):
+        """Get current service status"""
+        if not self.is_active:
+            return 'inactive'
+
+        today = datetime.now().date()
+        status = 'upcoming'
+
+        # Date-based logic
+        if self.next_service_date:
+            days_until = (self.next_service_date - today).days
+            if days_until < 0:
+                status = 'overdue'
+            elif days_until <= self.notify_days_before:
+                status = 'due_soon'
+
+        # Mileage-based logic overrides date
+        if current_mileage is not None and self.next_service_mileage is not None:
+            miles_remaining = self.next_service_mileage - current_mileage
+            if miles_remaining <= 0:
+                status = 'overdue'
+            elif miles_remaining <= 500:
+                status = 'due_soon' if status != 'overdue' else 'overdue'
+
+        return status
+    
+    
+
+    
+    def to_dict(self):
+        """Convert to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'car_id': self.car_id,
+            'service_type': self.service_type.name,
+            'interval_months': self.interval_months,
+            'interval_mileage': self.interval_mileage,
+            'last_service_date': self.last_service_date.isoformat() if self.last_service_date else None,
+            'next_service_date': self.next_service_date.isoformat() if self.next_service_date else None,
+            'status': self.get_status(self.car.current_mileage if self.car else None)
+        }
+    
+    def calculate_next_service(self, current_mileage=None):
+        """Calculate and return the next service status"""
+        self.update_schedule(current_mileage=current_mileage)
+        return self.get_status(current_mileage)
+
+    def __repr__(self):
+        return f'<Service {self.service_type.name} for Car {self.car_id}>'               
 
 
 class ServiceHistory(db.Model):
+    """Service history model for completed services"""
     __tablename__ = 'service_history'
     id = db.Column(db.Integer, primary_key=True)
     car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
     service_type_id = db.Column(db.Integer, db.ForeignKey('service_types.id'), nullable=False)
-    
     service_date = db.Column(db.Date, nullable=False)
-    mileage = db.Column(db.Integer, nullable=True)
-    cost = db.Column(db.Numeric(10, 2), nullable=True)
-    notes = db.Column(db.Text, nullable=True)
-    service_provider = db.Column(db.String(100), nullable=True)
+    mileage = db.Column(db.Integer)
+    cost = db.Column(db.Float)
+    service_provider = db.Column(db.String(100))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    # Relationships
+    service_type = db.relationship('ServiceType')
 
-    def __str__(self):
-        return f"{self.service_type.name} - {self.service_date}"
+
+class ServiceReminder(db.Model):
+    """Model for service reminders"""
+    __tablename__ = 'service_reminders'
+    id = db.Column(db.Integer, primary_key=True)
+    service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable=False)
+    reminder_date = db.Column(db.DateTime, nullable=False)
+    reminder_type = db.Column(db.String(20), nullable=False)  # 'email', 'push', 'both'
+    status = db.Column(db.String(20), default='pending')  # 'pending', 'sent', 'cancelled'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    @staticmethod
+    def create_reminder(service, days_before):
+        """Create a reminder for a service"""
+        if service.next_service_date:
+            reminder_date = datetime.combine(
+                service.next_service_date - timedelta(days=days_before),
+                datetime.min.time()
+            )
+            reminder = ServiceReminder(
+                service_id=service.id,
+                reminder_date=reminder_date,
+                reminder_type='both'
+            )
+            db.session.add(reminder)
+            db.session.commit()
+            return reminder
+        return None

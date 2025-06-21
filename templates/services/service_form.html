@@ -28,6 +28,7 @@
             </div>
         </div>
     </div>
+
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card">
@@ -44,10 +45,10 @@
                     <form method="POST" class="needs-validation" novalidate 
                           data-autosave="{% if 'Schedule' in title %}service-schedule{% else %}service-history{% endif %}">
                         {{ form.hidden_tag() }}
-                        
+
                         <div class="row g-3">
-                            
-                            <!-- Service Type -->
+
+                            <!-- Service Types -->
                             <div class="form-group col-md-12">
                                 <label class="form-label mb-2">{{ form.service_type_ids.label }}</label>
                                 <div class="row border rounded p-3 m-1">
@@ -71,47 +72,26 @@
                                 </div>
                             </div>
 
-                            <!-- Dynamic Interval Fields -->
-                            <div class="form-group col-md-12 mt-3">
+                            <!-- Dynamic Interval, Cost Fields -->
+                            <div class="form-group col-md-12">
                                 <label class="form-label mb-2">Service Intervals</label>
-                                <div class="row border rounded p-3" id="interval-fields"></div>
+                                <div class="row border rounded p-3 m-2" id="interval-fields"></div>
                             </div>
 
-                            {% if 'Schedule' in title %}
-                            <!-- Service Schedule Fields -->
-                            <div class="col-12">
-                                <h6 class="mt-3 mb-3">
-                                    <i data-feather="settings" class="me-2"></i>
-                                    Service Intervals
-                                </h6>
-                                <div class="alert alert-info">
-                                    <i data-feather="info" class="me-2"></i>
-                                    Set at least one interval (time or mileage) to schedule reminders.
-                                </div>
-                            </div>
-
-                            <!-- Last Service Info -->
-                            <div class="col-12">
-                                <h6 class="mt-3 mb-3">
-                                    <i data-feather="clock" class="me-2"></i>
-                                    Last Service Information
-                                </h6>
-                                <div class="form-text mb-3">Enter when this service was last performed to calculate next due date</div>
-                            </div>
-
-                            <!-- Last Service Date -->
+                            <!-- Shared Fields -->
                             <div class="col-md-6">
                                 <label for="{{ form.last_service_date.id }}" class="form-label">{{ form.last_service_date.label.text }}</label>
                                 {{ form.last_service_date(class="form-control") }}
                                 {% if form.last_service_date.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.last_service_date.errors %}{{ error }}{% endfor %}
-                                    </div>
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.last_service_date.errors %}{{ error }}{% endfor %}
+                                </div>
                                 {% endif %}
-                                <div class="form-text">When was it last done?</div>
+                                <div class="form-text">
+                                    {% if 'Schedule' in title %}When was it last done?{% else %}When was the service performed?{% endif %}
+                                </div>
                             </div>
 
-                            <!-- Last Service Mileage -->
                             <div class="col-md-6">
                                 <label for="{{ form.last_service_mileage.id }}" class="form-label">{{ form.last_service_mileage.label.text }}</label>
                                 <div class="input-group">
@@ -119,22 +99,17 @@
                                     <span class="input-group-text">miles</span>
                                 </div>
                                 {% if form.last_service_mileage.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.last_service_mileage.errors %}{{ error }}{% endfor %}
-                                    </div>
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.last_service_mileage.errors %}{{ error }}{% endfor %}
+                                </div>
                                 {% endif %}
-                                <div class="form-text">Mileage when last done</div>
+                                <div class="form-text">
+                                    {% if 'Schedule' in title %}Mileage when last done{% else %}Odometer reading at service time{% endif %}
+                                </div>
                             </div>
 
-                            <!-- Notification Settings -->
-                            <div class="col-12">
-                                <h6 class="mt-3 mb-3">
-                                    <i data-feather="bell" class="me-2"></i>
-                                    Notification Settings
-                                </h6>
-                            </div>
-
-                            <!-- Notify Days Before -->
+                            {% if 'Schedule' in title %}
+                            <!-- Schedule-specific -->
                             <div class="col-md-6">
                                 <label for="{{ form.notify_days_before.id }}" class="form-label">{{ form.notify_days_before.label.text }}</label>
                                 <div class="input-group">
@@ -142,134 +117,58 @@
                                     <span class="input-group-text">days</span>
                                 </div>
                                 {% if form.notify_days_before.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.notify_days_before.errors %}{{ error }}{% endfor %}
-                                    </div>
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.notify_days_before.errors %}{{ error }}{% endfor %}
+                                </div>
                                 {% endif %}
                                 <div class="form-text">Get reminded this many days before due date</div>
                             </div>
-
                             {% else %}
-                            <!-- Service History Fields -->
-                            <div class="col-12">
-                                <h6 class="mt-3 mb-3">
-                                    <i data-feather="calendar" class="me-2"></i>
-                                    Service Details
-                                </h6>
-                            </div>
-
-                            <!-- Service Date -->
+                            
+                            <!-- Record-specific Fields -->
                             <div class="col-md-6">
-                                <label for="{{ form.last_service_date.id }}" class="form-label">{{ form.last_service_date.label.text }}</label>
-                                {{ form.last_service_date(class="form-control") }}
-                                {% if form.last_service_date.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.last_service_date.errors %}{{ error }}{% endfor %}
+                                <label for="total-cost" class="form-label">Total Service Cost</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">₹</span>
+                                        <input type="number" step="0.01" class="form-control" id="total-cost" name="total_cost" readonly>
                                     </div>
-                                {% endif %}
-                                <div class="form-text">When was the service performed?</div>
+                                <div class="form-text">Total cost of all selected services (auto-calculated)</div>
                             </div>
 
-                            <!-- Mileage -->
-                            <div class="col-md-6">
-                                <label for="{{ form.last_service_mileage.id }}" class="form-label">{{ form.last_service_mileage.label.text }}</label>
-                                <div class="input-group">
-                                    {{ form.last_service_mileage(class="form-control") }}
-                                    <span class="input-group-text">miles</span>
-                                </div>
-                                {% if form.last_service_mileage.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.last_service_mileage.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                                <div class="form-text">Odometer reading at service time</div>
-                            </div>
-
-                            <!-- Cost -->
-                            <div class="col-md-6">
-                                <label for="{{ form.cost.id }}" class="form-label">{{ form.cost.label.text }}</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">₹</span>
-                                    {{ form.cost(class="form-control") }}
-                                </div>
-                                {% if form.cost.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.cost.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                                <div class="form-text">Total cost of service</div>
-                            </div>
-
-                            <!-- Service Provider -->
                             <div class="col-md-6">
                                 <label for="{{ form.service_provider.id }}" class="form-label">{{ form.service_provider.label.text }}</label>
                                 {{ form.service_provider(class="form-control") }}
                                 {% if form.service_provider.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.service_provider.errors %}{{ error }}{% endfor %}
-                                    </div>
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.service_provider.errors %}{{ error }}{% endfor %}
+                                </div>
                                 {% endif %}
                                 <div class="form-text">Shop or person who did the work</div>
                             </div>
 
-                            <!-- Notes -->
                             <div class="col-12">
                                 <label for="{{ form.notes.id }}" class="form-label">{{ form.notes.label.text }}</label>
                                 {{ form.notes(class="form-control", rows="3") }}
                                 {% if form.notes.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.notes.errors %}{{ error }}{% endfor %}
-                                    </div>
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.notes.errors %}{{ error }}{% endfor %}
+                                </div>
                                 {% endif %}
                                 <div class="form-text">Additional notes about the service</div>
                             </div>
                             {% endif %}
                         </div>
 
-                        <!-- Form Actions -->
                         <div class="row mt-4">
-                            <div class="col-12">
-                                <div class="d-flex justify-content-end">
-                                    <a href="{{ url_for('car_services', car_id=car.id) }}" class="btn btn-outline-secondary me-2">
-                                        Cancel
-                                    </a>
-                                    <button type="submit" class="btn btn-primary">
-                                        <i data-feather="save" class="me-1"></i>
-                                        {% if 'Schedule' in title %}Save Schedule{% else %}Save Record{% endif %}
-                                    </button>
-                                </div>
+                            <div class="col-12 d-flex justify-content-end">
+                                <a href="{{ url_for('car_services', car_id=car.id) }}" class="btn btn-outline-secondary me-2">Cancel</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i data-feather="save" class="me-1"></i>
+                                    {% if 'Schedule' in title %}Save Schedule{% else %}Save Record{% endif %}
+                                </button>
                             </div>
                         </div>
                     </form>
-                </div>
-            </div>
-
-            <!-- Help Card -->
-            <div class="card mt-4 border-info">
-                <div class="card-header bg-info text-white">
-                    <h6 class="mb-0">
-                        <i data-feather="help-circle" class="me-2"></i>
-                        {% if 'Schedule' in title %}Service Schedule Tips{% else %}Service Record Tips{% endif %}
-                    </h6>
-                </div>
-                <div class="card-body">
-                    {% if 'Schedule' in title %}
-                    <ul class="mb-0">
-                        <li><strong>Time intervals:</strong> Set for services that depend on time (e.g., 6 months for oil changes)</li>
-                        <li><strong>Mileage intervals:</strong> Set for services that depend on driving (e.g., 5,000 miles for oil changes)</li>
-                        <li><strong>Both intervals:</strong> Use both to get reminded whichever comes first</li>
-                        <li><strong>Last service info:</strong> Helps calculate when the next service is due</li>
-                        <li><strong>Notifications:</strong> You'll get push notifications when services are due soon</li>
-                    </ul>
-                    {% else %}
-                    <ul class="mb-0">
-                        <li><strong>Service date:</strong> Enter the actual date the service was performed</li>
-                        <li><strong>Mileage:</strong> This will update your car's current mileage if higher</li>
-                        <li><strong>Cost tracking:</strong> Keep records of maintenance expenses</li>
-                        <li><strong>Service provider:</strong> Remember who did the work for future reference</li>
-                        <li><strong>Notes:</strong> Record any issues found or work done</li>
-                    </ul>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -279,124 +178,72 @@
 
 {% block scripts %}
 <script>
-    // Form validation
-    (function() {
-        'use strict';
-        window.addEventListener('load', function() {
-            var forms = document.getElementsByClassName('needs-validation');
-            var validation = Array.prototype.filter.call(forms, function(form) {
-                form.addEventListener('submit', function(event) {
-                    if (form.checkValidity() === false) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                    }
-                    form.classList.add('was-validated');
-                }, false);
-            });
-        }, false);
-    })();
-
-    document.addEventListener('DOMContentLoaded', function() {
-        // Format mileage inputs with commas
-        const mileageInputs = document.querySelectorAll('input[type="number"][id*="mileage"]');
-        mileageInputs.forEach(input => {
-            input.addEventListener('input', function() {
-                let value = this.value.replace(/,/g, '');
-                if (!isNaN(value) && value !== '') {
-                    this.value = parseInt(value).toLocaleString();
-                }
-            });
-            
-            input.addEventListener('blur', function() {
-                this.value = this.value.replace(/,/g, '');
-            });
-        });
-
-        // Service type change handler - populate defaults
-        const serviceTypeSelect = document.getElementById('service_type_ids');
-        if (serviceTypeSelect) {
-            serviceTypeSelect.addEventListener('change', function() {
-                populateServiceDefaults(this.value);
-            });
-        }
-
-        // Set today's date as default for service date
-        const serviceDateInput = document.getElementById('service_date');
-        if (serviceDateInput && !serviceDateInput.value) {
-            const today = new Date().toISOString().split('T')[0];
-            serviceDateInput.value = today;
-        }
-
-        // Auto-populate current car mileage for service records
-        const mileageInput = document.getElementById('mileage');
-        if (mileageInput && !mileageInput.value) {
-            // This would be populated from the car's current mileage
-            // The actual value would come from the server/template
-        }
-    });
-
-    // Service type defaults (populated by app.js)
-    function populateServiceDefaults(serviceTypeId) {
-        if (typeof window.populateServiceDefaults === 'function') {
-            window.populateServiceDefaults(serviceTypeId);
-        }
-    }
-
-</script>
-
-
-<script>
     const serviceTypeIntervals = {{ service_type_intervals | tojson }};
+    const isSchedulePage = {{ 'true' if 'Schedule' in title else 'false' }};
 
     document.addEventListener('DOMContentLoaded', function () {
         const checkboxes = document.querySelectorAll('.service-checkbox');
         const intervalFieldsContainer = document.getElementById('interval-fields');
+        const totalCostField = document.getElementById('total-cost');
+
+        function updateTotalCost() {
+            let total = 0;
+            document.querySelectorAll('.service-cost-input').forEach(input => {
+                const val = parseFloat(input.value);
+                if (!isNaN(val)) total += val;
+            });
+            if (totalCostField) {
+                totalCostField.value = total.toFixed(2);
+            }
+        }
 
         function updateIntervalFields() {
-            intervalFieldsContainer.innerHTML = ''; // Clear old fields
+            intervalFieldsContainer.innerHTML = '';
 
             checkboxes.forEach(cb => {
                 if (cb.checked) {
                     const id = cb.dataset.id;
                     const label = cb.dataset.label;
-                    const interval = serviceTypeIntervals[id];
+                    const interval = serviceTypeIntervals[id] || {};
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'col-md-6 mb-3';
 
-                    if (interval) {
-                        const mileage = interval.mileage || '';
-                        const months = interval.months || '';
+                    let html = `
+                        <label class="form-label"><strong>${label}</strong></label>
+                        <div class="input-group mb-1">
+                            <input type="number" class="form-control" name="interval_mileage_${id}" value="${interval.mileage || ''}" placeholder="Mileage Interval">
+                            <span class="input-group-text">Miles</span>
+                        </div>
+                        <div class="input-group mb-1">
+                            <input type="number" class="form-control" name="interval_months_${id}" value="${interval.months || ''}" placeholder="Time Interval">
+                            <span class="input-group-text">Months</span>
+                        </div>`;
 
-                        const wrapper = document.createElement('div');
-                        wrapper.className = 'col-md-6 mb-3';
-
-                        wrapper.innerHTML = `
-                            <label class="form-label"><strong>${label}</strong></label>
-
-                            <div class="input-group mb-1">
-                                <input type="number" class="form-control" name="interval_mileage_${id}" value="${mileage}" placeholder="Mileage Interval">
-                                <span class="input-group-text">Miles</span>
-                            </div>
-
-                            <div class="input-group">
-                                <input type="number" class="form-control" name="interval_months_${id}" value="${months}" placeholder="Time Interval">
-                                <span class="input-group-text">Months</span>
-                            </div>
-                        `;
-
-                        intervalFieldsContainer.appendChild(wrapper);
+                    if (!isSchedulePage) {
+                        html += `
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" step="0.01" class="form-control service-cost-input" name="service_cost_${id}" placeholder="Service Cost">
+                        </div>`;
                     }
+
+                    wrapper.innerHTML = html;
+                    intervalFieldsContainer.appendChild(wrapper);
                 }
             });
+
+            // Attach event listeners to new cost inputs
+            if (!isSchedulePage) {
+                document.querySelectorAll('.service-cost-input').forEach(input => {
+                    input.addEventListener('input', updateTotalCost);
+                });
+                updateTotalCost(); // Initial calculation
+            }
         }
 
-        // Attach change event
-        checkboxes.forEach(cb => {
-            cb.addEventListener('change', updateIntervalFields);
-        });
-
-        // Initial call if anything is already checked
+        checkboxes.forEach(cb => cb.addEventListener('change', updateIntervalFields));
         updateIntervalFields();
     });
 </script>
-
 
 {% endblock %}

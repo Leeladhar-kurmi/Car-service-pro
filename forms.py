@@ -5,6 +5,7 @@ from wtforms.widgets import TextInput, NumberInput, ListWidget, CheckboxInput
 from models import ServiceType, Car
 from datetime import date
 from flask import request
+from wtforms import SelectMultipleField, widgets
 
 
 
@@ -55,13 +56,16 @@ class CarForm(FlaskForm):
             raise ValidationError("This registration number is already in use.")
 
 
+
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
 class ServiceForm(FlaskForm):
     service_type_ids = MultiCheckboxField(
-        'Service Types',
-        coerce=int,
-        validators=[],
-        choices=[]  # will be populated in __init__
-    )
+    'Service Types',
+    coerce=int,
+    validators=[]
+)
 
     interval_months = IntegerField('Interval (Months)', validators=[Optional(), NumberRange(min=1)], 
                                    widget=NumberInput())
@@ -69,12 +73,14 @@ class ServiceForm(FlaskForm):
                                     validators=[Optional(), NumberRange(min=1, max=999999)], 
                                     widget=MileageInput())
     last_service_date = DateField('Last Service Date', validators=[Optional()])
+    service_provider = StringField('Service Provider', validators=[Optional()])
     last_service_mileage = IntegerField('Last Service Mileage', 
                                         validators=[DataRequired(), NumberRange(min=0, max=999999)], 
                                         widget=MileageInput())
     notify_days_before = IntegerField('Notify Days Before', 
                                       validators=[DataRequired(), NumberRange(min=1, max=90)], 
                                       widget=NumberInput(), default=7)
+    notes = TextAreaField('Notes', validators=[Optional()])
 
     def __init__(self, *args, **kwargs):
         super(ServiceForm, self).__init__(*args, **kwargs)

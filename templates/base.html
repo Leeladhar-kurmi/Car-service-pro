@@ -257,13 +257,13 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i data-feather="home" class="me-1"></i>Dashboard
+                        <a class="nav-link" href="{{ url_for('dashboard') }}" >
+                            <i data-feather="home" class="me-1" ></i>Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('cars') }}">
-                            <i data-feather="car" class="me-1"></i>My Cars
+                            <i data-feather="car" class="me-1" ></i>My Cars
                         </a>
                     </li>
                     <li class="nav-item">
@@ -356,7 +356,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="bg-light py-4 mt-5">
+    <footer class="bg-light py-2 mt-1">
         <div class="container">
             <div class="row">
                 <div class="col-md-6">
@@ -375,158 +375,129 @@
     </footer>
 
     <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- Custom JS -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/mileage-input.js') }}"></script>
-    
-    {% if current_user.is_authenticated %}
-    <!-- Push Notifications JS -->
-    <script src="{{ url_for('static', filename='js/push-notifications.js') }}"></script>
-    {% endif %}
-    
-    {% block scripts %}{% endblock %}
-    
-    <!-- Initialize Feather Icons -->
-    <script>
-        feather.replace();
-    </script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Add this before the closing body tag -->
-    <script>
-        let statusCheckTimeout;
-        let alertTimeout;
-        let isAlertVisible = false;
-
-        // Show alert with auto-hide
-        function showStatusAlert(message, type = 'warning') {
-            const alert = document.getElementById('server-status-alert');
-            const messageEl = document.getElementById('server-status-message');
-            
-            // Clear any existing timeouts
-            if (alertTimeout) {
-                clearTimeout(alertTimeout);
-            }
-
-            // Update alert content and style
-            alert.className = `alert alert-${type} alert-dismissible fade`;
-            messageEl.textContent = message;
-            
-            // Show the alert
-            alert.style.display = 'block';
-            // Force reflow
-            alert.offsetHeight;
-            alert.classList.add('show');
-            isAlertVisible = true;
-
-            // Hide after 5 seconds
-            alertTimeout = setTimeout(() => {
-                hideStatusAlert();
-            }, 5000);
-        }
-
-        // Hide alert with animation
-        function hideStatusAlert() {
-            const alert = document.getElementById('server-status-alert');
-            alert.classList.remove('show');
-            
-            // Wait for fade out animation to complete
-            setTimeout(() => {
-                alert.style.display = 'none';
-                isAlertVisible = false;
-            }, 300); // Match the CSS transition duration
-        }
-
-        // Check server status
-        function checkServerStatus() {
-            fetch('/', {
-                method: 'HEAD',
-                cache: 'no-store'
-            }).then(response => {
-                if (response.ok) {
-                    if (isAlertVisible) {
-                        showStatusAlert('Server is online', 'success');
-                        // Stop checking after server is back online
-                        if (statusCheckTimeout) {
-                            clearTimeout(statusCheckTimeout);
-                            statusCheckTimeout = null;
-                        }
-                    }
-                }
-            }).catch(error => {
-                showStatusAlert('Server is offline. You are viewing cached content.');
-                // Keep checking status when offline
-                if (!statusCheckTimeout) {
-                    statusCheckTimeout = setTimeout(checkServerStatus, 30000);
-                }
-            });
-        }
-
-        // Initial check on page load with delay
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(checkServerStatus, 1000);
-        });
-
-        // Check status when page becomes visible
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                checkServerStatus();
-            }
-        });
-
-        // Handle alert dismiss button
-        document.querySelector('#server-status-alert .btn-close').addEventListener('click', () => {
-            hideStatusAlert();
-        });
-    </script>
-
-    <script>
-    // Initialize Feather icons when dropdown is shown
-    document.querySelector('.dropdown').addEventListener('shown.bs.dropdown', function () {
+<!-- Feather Icons -->
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
         feather.replace();
     });
+</script>
 
-    // Add hover effect for icons
+<!-- jQuery (required by Select2) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Select2 Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(() => {
+        $('.select2-multiple').select2({
+            placeholder: "Select service types",
+            allowClear: true
+        });
+    });
+</script>
+
+<!-- Custom JS Files -->
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/mileage-input.js') }}"></script>
+
+{% if current_user.is_authenticated %}
+<script src="{{ url_for('static', filename='js/push-notifications.js') }}"></script>
+{% endif %}
+
+{% block scripts %}{% endblock %}
+
+{#<!-- Server Status Alert & Notification -->
+<script>
+    let alertTimeout;
+    let statusCheckTimeout;
+    let lastKnownStatus = null;
+
+    function showStatusAlert(message, type = 'success') {
+        const alertBox = document.getElementById('server-status-alert');
+        const messageEl = document.getElementById('server-status-message');
+
+        if (!alertBox || !messageEl) return;
+
+        // Cancel previous timeout
+        clearTimeout(alertTimeout);
+
+        // Update alert class and text
+        alertBox.className = `alert alert-${type} alert-dismissible fade`;
+        messageEl.textContent = message;
+
+        // Show it
+        alertBox.style.display = 'block';
+        alertBox.offsetHeight;  // force reflow
+        alertBox.classList.add('show');
+
+        // Auto hide after 3–5 seconds
+        alertTimeout = setTimeout(() => {
+            alertBox.classList.remove('show');
+            setTimeout(() => {
+                alertBox.style.display = 'none';
+            }, 300);
+        }, Math.floor(Math.random() * 2000) + 3000);
+    }
+
+    function checkServerStatus() {
+        fetch("/", { method: "HEAD", cache: "no-store" }).then(response => {
+            if (response.ok) {
+                if (lastKnownStatus !== "online") {
+                    showStatusAlert("Server is online", "success");
+                    lastKnownStatus = "online";
+                }
+                if (statusCheckTimeout) clearTimeout(statusCheckTimeout);
+            }
+        }).catch(() => {
+            if (lastKnownStatus !== "offline") {
+                showStatusAlert("Server is offline", "warning");
+                lastKnownStatus = "offline";
+            }
+            if (!statusCheckTimeout) {
+                statusCheckTimeout = setTimeout(checkServerStatus, 30000); // retry every 30 sec
+            }
+        });
+    }
+
+    // Run on page load and when returning to tab
+    document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(checkServerStatus, 1000);
+    });
+    document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+            checkServerStatus();
+        }
+    });
+
+    // Manual dismiss
+    document.querySelector('#server-status-alert .btn-close').addEventListener('click', () => {
+        document.getElementById('server-status-alert').classList.remove('show');
+        setTimeout(() => {
+            document.getElementById('server-status-alert').style.display = 'none';
+        }, 300);
+    });
+</script>#}
+
+<!-- Feather icon recoloring on hover -->
+<script>
+
     document.querySelectorAll('.dropdown-item, .enable-notifications-btn').forEach(item => {
-        item.addEventListener('mouseenter', function() {
+        item.addEventListener('mouseenter', function () {
             const icon = this.querySelector('i, svg');
             if (icon) {
                 icon.style.stroke = this.classList.contains('logout-item') ? '#dc3545' : '#007bff';
             }
         });
-        
-        item.addEventListener('mouseleave', function() {
+        item.addEventListener('mouseleave', function () {
             const icon = this.querySelector('i, svg');
             if (icon) {
                 icon.style.stroke = this.classList.contains('logout-item') ? '#dc3545' : '#495057';
             }
         });
     });
-
-    // Auto-dismiss alerts after 3 to 5 seconds (random within range)
-            document.addEventListener("DOMContentLoaded", function () {
-                const alerts = document.querySelectorAll('.alert');
-                alerts.forEach(function(alert) {
-                    const timeout = 5000; //  5000 ms
-                    setTimeout(function () {
-                        alert.classList.remove('show'); // hides the alert with Bootstrap fade
-                        alert.classList.add('hide');
-                    }, timeout);
-                });
-            });
-    </script>
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
-
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            $('.select2-multiple').select2({
-                placeholder: "Select service types",
-                allowClear: true
-            });
-        });
-    </script>
+</script>
 
 
     {% block body_scripts %}{% endblock %}

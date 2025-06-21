@@ -87,8 +87,14 @@
                         </div>
                         <div class="col-sm-3">
                             <h5 class="text-success">
-                                {% set total_cost = service_history|selectattr('cost')|sum(attribute='cost') %}
-                                ₹{{ "%.2f"|format(total_cost) }}
+                                {% for history in service_history %}
+                                    {% set total_cost = history.service_items | map(attribute='cost') | sum %}
+                                    {% if total_cost %}
+                                        <strong class="text-success">₹{{ '%.2f' % total_cost }}</strong>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                {% endfor %}
                             </h5>
                             <small class="text-muted">Total Spent</small>
                         </div>
@@ -133,7 +139,7 @@
                             <label for="service_filter" class="form-label">Filter by Service</label>
                             <select name="service_type" id="service_filter" class="form-select">
                                 <option value="">All Services</option>
-                                {% for service_type in service_history|map(attribute='service_type')|unique %}
+                                {% for service_type in service_types %}
                                 <option value="{{ service_type.id }}" {% if request.args.get('service_type')|string == service_type.id|string %}selected{% endif %}>
                                     {{ service_type.name }}
                                 </option>
@@ -144,7 +150,7 @@
                             <label for="year_filter" class="form-label">Year</label>
                             <select name="year" id="year_filter" class="form-select">
                                 <option value="">All Years</option>
-                                {% for year in range(2020, 2027) %}
+                                {% for year in range(year-4, year+1) %}
                                 <option value="{{ year }}" {% if request.args.get('year')|string == year|string %}selected{% endif %}>
                                     {{ year }}
                                 </option>
@@ -238,12 +244,13 @@
                                         <br>
                                         <small class="text-muted">{{ history.car.registration_number }}</small>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-primary">{{ history.service_type.name }}</span>
-                                        {% if history.service_type.description %}
-                                        <br>
-                                        <small class="text-muted">{{ history.service_type.description }}</small>
-                                        {% endif %}
+                                   <td>
+                                        {% for item in history.service_items %}
+                                            <span class="badge bg-primary">{{ item.service_type.name }}</span><br>
+                                            {% if item.service_type.description %}
+                                                <small class="text-muted">{{ item.service_type.description }}</small><br>
+                                            {% endif %}
+                                        {% endfor %}
                                     </td>
                                     <td>
                                         {% if history.mileage %}
@@ -253,12 +260,14 @@
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if history.cost %}
-                                            <strong class="text-success">₹{{ "%.2f"|format(history.cost) }}</strong>
+                                        {% set total_cost = history.service_items | map(attribute='cost') | sum %}
+                                        {% if total_cost %}
+                                            <strong class="text-success">₹{{ '%.2f' % total_cost }}</strong>
                                         {% else %}
                                             <span class="text-muted">—</span>
                                         {% endif %}
-                                    </td>
+</td>
+
                                     <td>
                                         {% if history.service_provider %}
                                             {{ history.service_provider }}
@@ -297,14 +306,16 @@
                 <div class="card-body">
                     {% set service_counts = {} %}
                     {% for history in service_history %}
-                        {% set service_name = history.service_type.name %}
-                        {% if service_name in service_counts %}
-                            {% set _ = service_counts.update({service_name: service_counts[service_name] + 1}) %}
-                        {% else %}
-                            {% set _ = service_counts.update({service_name: 1}) %}
-                        {% endif %}
+                        {% for item in history.service_items %}
+                            {% set name = item.service_type.name %}
+                            {% if name in service_counts %}
+                                {% set _ = service_counts.update({name: service_counts[name] + 1}) %}
+                            {% else %}
+                                {% set _ = service_counts.update({name: 1}) %}
+                            {% endif %}
+                        {% endfor %}
                     {% endfor %}
-                    
+
                     {% for service_name, count in service_counts.items() %}
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>{{ service_name }}</span>
@@ -325,15 +336,18 @@
                 </div>
                 <div class="card-body">
                     {% set monthly_costs = {} %}
-                    {% for history in service_history if history.cost %}
-                        {% set month_key = history.service_date.strftime('%m-%Y') %}
-                        {% if month_key in monthly_costs %}
-                            {% set _ = monthly_costs.update({month_key: monthly_costs[month_key] + history.cost}) %}
-                        {% else %}
-                            {% set _ = monthly_costs.update({month_key: history.cost}) %}
+                    {% for history in service_history %}
+                        {% set total_cost = history.service_items | map(attribute='cost') | sum %}
+                        {% if total_cost %}
+                            {% set month_key = history.service_date.strftime('%m-%Y') %}
+                            {% if month_key in monthly_costs %}
+                                {% set _ = monthly_costs.update({month_key: monthly_costs[month_key] + total_cost}) %}
+                            {% else %}
+                                {% set _ = monthly_costs.update({month_key: total_cost}) %}
+                            {% endif %}
                         {% endif %}
                     {% endfor %}
-                    
+
                     {% for month, cost in monthly_costs.items() %}
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <span>{{ month }}</span>

@@ -181,7 +181,7 @@
                                     <th>Date</th>
                                     <th>Car</th>
                                     <th>Registration NUmber</th>
-                                    <th>Service</th>
+                                    {#<th>Service</th>#}
                                     <th>Mileage</th>
                                     <th>Cost</th>
                                 </tr>
@@ -189,20 +189,20 @@
                             <tbody>
                                 {% for history in recent_history %}
                                 <tr>
-                                    <td>{{ history.service_date.strftime('%m/%d/%Y') }}</td>
+                                    <td>{{ history.service_date.strftime('%d/%m/%Y') }}</td>
                                     <td>{{ history.car.make }} {{ history.car.model }}</td>
                                     <td>{{ history.car.registration_number }}</td>
-                                    <td>{{ history.service_type.name }}</td>
+                                    {#<td>{{ history.service_type.name }}</td>#}
                                     <td>
                                         {% if history.mileage %}
-                                            {{ "{:,}".format(history.mileage) }} mi
+                                            {{ "{:,}".format(history.mileage) }} miles
                                         {% else %}
                                             -
                                         {% endif %}
                                     </td>
                                     <td>
-                                        {% if history.cost %}
-                                            ₹{{ "%.2f"|format(history.cost) }}
+                                        {% if history.total_cost %}
+                                            ₹{{ "%.2f"|format(history.total_cost) }}
                                         {% else %}
                                             -
                                         {% endif %}
@@ -245,12 +245,12 @@
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div>
                                             <h6 class="card-title mb-1">{{ car.make }} {{ car.model }}</h6>
-                                            <p class="card-text text-muted mb-2">
+                                            <p class="card-text text-muted mb-1">
                                                 {{ car.registration_number }}
                                                 {% if car.color %} • {{ car.color }}{% endif %}
                                             </p>
                                             <small class="text-muted">
-                                                Current: {{ "{:,}".format(car.current_mileage) }} miles
+                                                Current Milage: {{ "{:,}".format(car.current_mileage) }} miles
                                             </small>
                                         </div>
                                         <div class="text-end">

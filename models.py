@@ -16,7 +16,7 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128))
     first_name = db.Column(db.String(50))
     last_name = db.Column(db.String(50))
-    profile_image_url = db.Column(db.String, nullable=True)
+    profile_image_url = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     # Notification preferences
@@ -26,6 +26,8 @@ class User(UserMixin, db.Model):
     
     # Relationships
     cars = db.relationship('Car', backref='user', lazy=True, cascade='all, delete-orphan')
+    service_history = db.relationship('ServiceHistory', back_populates='user', cascade='all, delete-orphan')
+    # service_history = db.relationship('ServiceHistory', back_populates='car', lazy=True, cascade='all, delete-orphan')
     
     @property
     def full_name(self):
@@ -44,7 +46,6 @@ class User(UserMixin, db.Model):
 
 
 class Car(db.Model):
-    """Car model for storing vehicle information"""
     __tablename__ = 'cars'
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
@@ -59,20 +60,32 @@ class Car(db.Model):
     insurance_company = db.Column(db.String(50))
     expiry_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     services = db.relationship('Service', backref='car', lazy=True, cascade='all, delete-orphan')
-    service_history = db.relationship('ServiceHistory', backref='car', lazy=True, cascade='all, delete-orphan')
+    service_history = db.relationship('ServiceHistory', back_populates='car', lazy=True, cascade='all, delete-orphan')
+
+    @property
+    def overdue_count(self):
+        return ServiceReminder.query.filter_by(car_id=self.id, status='overdue').count()
+
+    @property
+    def due_soon_count(self):
+        return ServiceReminder.query.filter_by(car_id=self.id, status='due_soon').count()
+
+    @property
+    def upcoming_count(self):
+        return ServiceReminder.query.filter_by(car_id=self.id, status='upcoming').count()
 
 
     def __repr__(self):
         return f'<Car {self.year} {self.make} {self.model}>'
-    
+
     def total_service_cost(self):
-        return db.session.query(func.sum(ServiceHistory.cost)).filter(
+        return db.session.query(func.sum(ServiceHistory.total_cost)).filter(
             ServiceHistory.car_id == self.id
         ).scalar() or 0
-    
+
     def last_service_date(self):
         return db.session.query(func.max(ServiceHistory.service_date)).filter(
             ServiceHistory.car_id == self.id
@@ -265,18 +278,33 @@ class Service(db.Model):
 
 
 class ServiceHistory(db.Model):
-    """Service history model for completed services"""
     __tablename__ = 'service_history'
     id = db.Column(db.Integer, primary_key=True)
     car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
-    service_type_id = db.Column(db.Integer, db.ForeignKey('service_types.id'), nullable=False)
+
+    # Add this line:
+    user_id = db.Column(db.String(36), db.ForeignKey('users.id'))
+
     service_date = db.Column(db.Date, nullable=False)
     mileage = db.Column(db.Integer)
-    cost = db.Column(db.Float)
+    total_cost = db.Column(db.Float)
     service_provider = db.Column(db.String(100))
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
+    # Relationships
+    car = db.relationship('Car', back_populates='service_history')
+    user = db.relationship('User', back_populates='service_history')  # Add this
+    service_items = db.relationship('ServiceHistoryItem', backref='history', cascade='all, delete-orphan')
+
+
+class ServiceHistoryItem(db.Model):
+    """Service Item model for each services"""
+    id = db.Column(db.Integer, primary_key=True)
+    history_id = db.Column(db.Integer, db.ForeignKey("service_history.id"), nullable=False)
+    service_type_id = db.Column(db.Integer, db.ForeignKey("service_types.id"), nullable=False)
+    cost = db.Column(db.Float)
+
     # Relationships
     service_type = db.relationship('ServiceType')
 
@@ -286,6 +314,7 @@ class ServiceReminder(db.Model):
     __tablename__ = 'service_reminders'
     id = db.Column(db.Integer, primary_key=True)
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable=False)
+    car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
     reminder_date = db.Column(db.DateTime, nullable=False)
     reminder_type = db.Column(db.String(20), nullable=False)  # 'email', 'push', 'both'
     status = db.Column(db.String(20), default='pending')  # 'pending', 'sent', 'cancelled'
@@ -301,8 +330,11 @@ class ServiceReminder(db.Model):
             )
             reminder = ServiceReminder(
                 service_id=service.id,
+                car_id=service.car_id,
                 reminder_date=reminder_date,
-                reminder_type='both'
+                reminder_type='both',
+                status='pending',
+                created_at=datetime.utcnow()
             )
             db.session.add(reminder)
             db.session.commit()

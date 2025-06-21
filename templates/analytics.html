@@ -55,7 +55,7 @@
         <div class="col-sm-6 col-lg-3">
             <div class="dashboard-widget widget-info">
                 <h3>₹{{ "%.2f"|format(total_cost) }}</h3>
-                <p>Total Cost</p>
+                <p>Total Spent Amount</p>
                 <i data-feather="dollar-sign" class="position-absolute" style="top: 1rem; right: 1rem; opacity: 0.7;"></i>
             </div>
         </div>
@@ -63,7 +63,7 @@
         <div class="col-sm-6 col-lg-3">
             <div class="dashboard-widget widget-warning">
                 <h3>{{ upcoming_services|length }}</h3>
-                <p>Upcoming Services</p>
+                <p>No upcoming services in the next 30 days</p>
                 <i data-feather="clock" class="position-absolute" style="top: 1rem; right: 1rem; opacity: 0.7;"></i>
             </div>
         </div>
@@ -172,7 +172,7 @@
     </div>
 
     <!-- Cost Analysis Table -->
-    <div class="row">
+    {#<div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
@@ -235,13 +235,12 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div>#}
 </div>
 {% endblock %}
 
 {% block body_scripts %}
 <!-- Load analytics.js at end of body -->
-    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
     <script>
         // Cost by Car Pie Chart
         const costByCarCtx = document.getElementById('costByCarChart').getContext('2d');
@@ -260,7 +259,8 @@
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false
+                        display: false,
+                        position: 'right', 
                     },
                     tooltip: {
                         callbacks: {

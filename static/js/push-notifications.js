@@ -11,19 +11,19 @@ class PushNotificationManager {
     
     async init() {
         if (!('serviceWorker' in navigator)) {
-            console.log('Service Worker not supported');
+            // console.log('Service Worker not supported');
             return;
         }
         
         if (!('PushManager' in window)) {
-            console.log('Push messaging not supported');
+            // console.log('Push messaging not supported');
             return;
         }
         
         try {
             // Wait for service worker to be ready
             this.swRegistration = await navigator.serviceWorker.ready;
-            console.log('Service Worker is ready');
+            // console.log('Service Worker is ready');
             
             // Check current subscription status
             await this.updateSubscriptionStatus();
@@ -41,12 +41,12 @@ class PushNotificationManager {
             const subscription = await this.swRegistration.pushManager.getSubscription();
             this.isSubscribed = !(subscription === null);
             
-            console.log('Subscription status:', this.isSubscribed);
+            // console.log('Subscription status:', this.isSubscribed);
             
             if (this.isSubscribed) {
-                console.log('User is subscribed to push notifications');
+                // console.log('User is subscribed to push notifications');
             } else {
-                console.log('User is not subscribed to push notifications');
+                // console.log('User is not subscribed to push notifications');
             }
             
             this.updateUI();
@@ -67,7 +67,7 @@ class PushNotificationManager {
                 applicationServerKey: this.urlBase64ToUint8Array(this.publicVapidKey)
             });
             
-            console.log('User subscribed to push notifications');
+            // console.log('User subscribed to push notifications');
             
             // Send subscription to server
             await this.sendSubscriptionToServer(subscription);
@@ -88,7 +88,7 @@ class PushNotificationManager {
             
             if (subscription) {
                 await subscription.unsubscribe();
-                console.log('User unsubscribed from push notifications');
+                // console.log('User unsubscribed from push notifications');
                 
                 // Remove subscription from server
                 await this.removeSubscriptionFromServer();
@@ -118,7 +118,7 @@ class PushNotificationManager {
                 throw new Error('Failed to send subscription to server');
             }
             
-            console.log('Subscription sent to server successfully');
+            // console.log('Subscription sent to server successfully');
         } catch (error) {
             console.error('Error sending subscription to server:', error);
             throw error;
@@ -138,7 +138,7 @@ class PushNotificationManager {
                 throw new Error('Failed to remove subscription from server');
             }
             
-            console.log('Subscription removed from server successfully');
+            // console.log('Subscription removed from server successfully');
         } catch (error) {
             console.error('Error removing subscription from server:', error);
         }
@@ -219,11 +219,11 @@ class PushNotificationManager {
             const permission = await Notification.requestPermission();
             
             if (permission === 'granted') {
-                console.log('Notification permission granted');
+                // console.log('Notification permission granted');
                 await this.subscribeUser();
                 this.showStatusMessage('Notifications enabled successfully!', 'success');
             } else {
-                console.log('Notification permission denied');
+                // console.log('Notification permission denied');
                 this.showStatusMessage('Notification permission denied', 'warning');
             }
         } catch (error) {
@@ -246,7 +246,7 @@ class PushNotificationManager {
     // Test notification (for development)
     async sendTestNotification() {
         if (!this.isSubscribed) {
-            console.log('User not subscribed to notifications');
+            // console.log('User not subscribed to notifications');
             return;
         }
         
@@ -259,7 +259,7 @@ class PushNotificationManager {
             });
             
             if (response.ok) {
-                console.log('Test notification sent');
+                // console.log('Test notification sent');
             } else {
                 console.error('Failed to send test notification');
             }

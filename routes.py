@@ -1,7 +1,7 @@
 from flask import session, render_template,Blueprint, redirect, url_for, flash, request, jsonify
 from flask_login import current_user, login_required, login_user, logout_user
 from datetime import datetime, date, timedelta, timezone
-from models import User, Car, Service, ServiceType, ServiceHistory, ServiceReminder
+from models import User, Car, Service, ServiceType, ServiceHistory, ServiceReminder, ServiceHistoryItem
 from forms import CarForm, ServiceForm, ServiceHistoryForm, RegistrationForm, ResetPasswordForm
 import json
 import uuid
@@ -324,22 +324,44 @@ def register_routes(app, db, mail):
     def cars():
         """List all user's cars"""
         cars = Car.query.filter_by(user_id=current_user.id).all()
-        overdue_count = 0
-        due_soon_count = 0
-        upcoming_count = 0
-        
+
+        total_overdue = 0
+        total_due_soon = 0
+        total_upcoming = 0
+
         for car in cars:
+            car_overdue = 0
+            car_due_soon = 0
+            car_upcoming = 0
+
             for service in car.services:
                 status = service.calculate_next_service(car.current_mileage)
-                
-                if status == "overdue":
-                    overdue_count += 1
-                if status == "due_soon":
-                    due_soon_count +=1
-                if status == "upcoming":
-                    upcoming_count +=1
-        return render_template('cars.html', overdue_count=overdue_count, due_soon_count=due_soon_count, upcoming_count=upcoming_count, cars=cars,  datetime = datetime)
 
+                if status == "overdue":
+                    car_overdue += 1
+                    total_overdue += 1
+                elif status == "due_soon":
+                    car_due_soon += 1
+                    total_due_soon += 1
+                elif status == "upcoming":
+                    car_upcoming += 1
+                    total_upcoming += 1
+
+            # Assign to temp dynamic attributes
+            car._overdue_count = car_overdue
+            car._due_soon_count = car_due_soon
+            car._upcoming_count = car_upcoming
+
+        return render_template(
+            'cars.html',
+            cars=cars,
+            overdue_count=total_overdue,
+            due_soon_count=total_due_soon,
+            upcoming_count=total_upcoming,
+            datetime=datetime
+        )
+
+    
     @app.route('/cars/add', methods=['GET', 'POST'])
     @login_required
     def add_car():
@@ -463,23 +485,66 @@ def register_routes(app, db, mail):
     @app.route('/services/<int:service_id>/edit', methods=['GET', 'POST'])
     @login_required
     def edit_service(service_id):
-        """Edit a service schedule"""
         service = Service.query.join(Car).filter(
             Service.id == service_id,
             Car.user_id == current_user.id
         ).first_or_404()
-        
-        form = ServiceForm(obj=service)
-        
+
+        # Service type interval defaults
+        service_type_intervals = {
+            st.id: {
+                "mileage": st.default_interval_mileage or 0,
+                "months": st.default_interval_months or 0
+            }
+            for st in ServiceType.query.all()
+        }
+
+        form = ServiceForm()
+        form.service_type_ids.choices = [(st.id, st.name) for st in ServiceType.query.order_by(ServiceType.name)]
+
+        if request.method == 'GET':
+            # Pre-fill form
+            form.service_type_ids.data = [service.service_type_id]
+            form.interval_months.data = service.interval_months
+            form.interval_mileage.data = service.interval_mileage
+            form.last_service_date.data = service.last_service_date
+            form.last_service_mileage.data = service.last_service_mileage
+            form.notify_days_before.data = service.notify_days_before
+
         if form.validate_on_submit():
-            form.populate_obj(service)
-            service.calculate_next_service()
+            # Pick the first (only) selected service type
+            selected_id = form.service_type_ids.data[0]
+            service.service_type_id = selected_id
+
+            # Get dynamic interval fields from request.form
+            try:
+                service.interval_mileage = int(request.form.get(f'interval_mileage_{selected_id}', 0))
+            except (ValueError, TypeError):
+                service.interval_mileage = 0
+
+            try:
+                service.interval_months = int(request.form.get(f'interval_months_{selected_id}', 0))
+            except (ValueError, TypeError):
+                service.interval_months = 0
+
+            service.last_service_date = form.last_service_date.data
+            service.last_service_mileage = form.last_service_mileage.data
+            service.notify_days_before = form.notify_days_before.data
             service.updated_at = datetime.now()
+
+            service.calculate_next_service()
+
             db.session.commit()
             flash('Service schedule updated successfully!', 'success')
             return redirect(url_for('car_services', car_id=service.car_id))
-        
-        return render_template('services/service_form.html', form=form, title='Edit Service Schedule', car=service.car)
+
+        return render_template(
+            'services/service_form.html',
+            form=form,
+            title='Edit Service Schedule',
+            car=service.car,
+            service_type_intervals=service_type_intervals
+        )
 
     @app.route('/services/<int:service_id>/delete', methods=['POST'])
     @login_required
@@ -509,9 +574,19 @@ def register_routes(app, db, mail):
             query = query.filter(Car.id == car_id)
         
         # Apply service type filter
-        service_type_id = request.args.get('service_type')
-        if service_type_id:
-            query = query.filter(ServiceHistory.service_type_id == service_type_id)
+        service_types = ServiceType.query.order_by(ServiceType.name).all()
+
+        # Also get filtered service history or data if needed
+        selected_service_type = request.args.get('service_type')
+        
+        if selected_service_type:
+            # Filter logic, example:
+            service_history = ServiceHistory.query\
+                .join(ServiceHistory.service_items)\
+                .filter(ServiceHistoryItem.service_type_id == selected_service_type)\
+                .all()
+        else:
+            service_history = ServiceHistory.query.all()
         
         # Apply year filter
         year = request.args.get('year')
@@ -523,57 +598,72 @@ def register_routes(app, db, mail):
         service_history = query.order_by(ServiceHistory.service_date.desc()).all()
         year=datetime.now().year
         
-        return render_template('services/history.html', service_history=service_history,year=year)
+        return render_template('services/history.html', service_history=service_history,year=year, service_types=service_types)
 
     @app.route('/cars/<int:car_id>/history/add', methods=['GET', 'POST'])
     @login_required
     def add_service_history(car_id):
-        """Add service history entry"""
         car = Car.query.filter_by(id=car_id, user_id=current_user.id).first_or_404()
-        form = ServiceHistoryForm()
-        
-        service_type_intervals ={m.id:{"mileage": m.default_interval_mileage or 0,
-                                       "months":m.default_interval_months or 0 }
-                                    for m in ServiceType.query.all()
-                                    }
-        
+        form = ServiceForm()
+
+        # Populate choices for multi-checkbox field
+        form.service_type_ids.choices = [(stype.id, stype.name) for stype in ServiceType.query.all()]
+
+        # Pass default intervals to template
+        service_type_intervals = {
+            st.id: {
+                "mileage": st.default_interval_mileage or 0,
+                "months": st.default_interval_months or 0
+            }
+            for st in ServiceType.query.all()
+        }
+
         if form.validate_on_submit():
+            total_cost = 0.0
+            service_items = []
+
+            # Collect all selected service items and costs
             for service_type_id in form.service_type_ids.data:
-                history = ServiceHistory(
-                    car_id=car_id,
+                cost_key = f"service_cost_{service_type_id}"
+                try:
+                    cost = float(request.form.get(cost_key, 0))
+                except (TypeError, ValueError):
+                    cost = 0.0
+                total_cost += cost
+
+                item = ServiceHistoryItem(
                     service_type_id=service_type_id,
-                    service_date=form.service_date.data,
-                    mileage=form.mileage.data,
-                    cost=form.cost.data / len(form.service_type_ids.data) if form.cost.data else None,  # Split cost evenly
-                    notes=form.notes.data,
-                    service_provider=form.service_provider.data
+                    cost=cost
                 )
-                db.session.add(history)
-                
-                # Update related service schedule if exists
-                service = Service.query.filter_by(
-                    car_id=car_id, 
-                    service_type_id=service_type_id
-                ).first()
-                if service:
-                    service.last_service_date = form.service_date.data
-                    service.last_service_mileage = form.mileage.data
-                    service.calculate_next_service()
-                    service.notification_sent = False  # Reset notification flag
-            
-            # Update car mileage if provided
-            if form.mileage.data and form.mileage.data > car.current_mileage:
-                car.current_mileage = form.mileage.data
-            
+                service_items.append(item)
 
+            # Create main history record
+            history = ServiceHistory(
+                car_id=car.id,
+                user_id=current_user.id,
+                service_date=form.last_service_date.data,
+                mileage=form.last_service_mileage.data,
+                total_cost=total_cost,
+                service_provider=form.service_provider.data,
+                notes=form.notes.data
+            )
 
+            # Associate items with the history
+            history.service_items.extend(service_items)
+
+            db.session.add(history)
             db.session.commit()
-            flash('Service history added successfully!', 'success')
-            return redirect(url_for('history'))
-        
-        print(service_type_intervals)
-        
-        return render_template('service_history_form.html', form=form, title='Add Service History', car=car, service_type_intervals = service_type_intervals)
+
+            flash('Service history recorded successfully.', 'success')
+            return redirect(url_for('car_services', car_id=car.id))
+
+        return render_template(
+            'services/service_form.html',
+            form=form,
+            title='Add Service Record',
+            car=car,
+            service_type_intervals=service_type_intervals
+        )
 
 
     @app.route('/api/push-subscription', methods=['POST'])
@@ -669,96 +759,83 @@ def register_routes(app, db, mail):
     def analytics():
         # 1. Overall Statistics
         total_cars = Car.query.filter_by(user_id=current_user.id).count()
-        total_services = ServiceHistory.query.join(Car).filter(
-            Car.user_id == current_user.id
-        ).count()
-        total_cost = db.session.query(func.sum(ServiceHistory.cost)).join(
-            Car
-        ).filter(
-            Car.user_id == current_user.id
-        ).scalar() or 0
-        
-        # 2. Cost by Car (Pie Chart) - FIXED QUERY
+        total_services = ServiceHistory.query.join(Car).filter(Car.user_id == current_user.id).count()
+
+        total_cost = (
+            db.session.query(func.sum(ServiceHistoryItem.cost))
+            .join(ServiceHistory)
+            .join(Car)
+            .filter(Car.user_id == current_user.id)
+            .scalar()
+        ) or 0.0
+
+        # 2. Cost by Car
         cost_by_car = db.session.query(
             Car.make,
             Car.model,
-            func.sum(ServiceHistory.cost)
-        ).join(
-            ServiceHistory, ServiceHistory.car_id == Car.id
-        ).filter(
-            Car.user_id == current_user.id
-        ).group_by(
-            Car.id, Car.make, Car.model
-        ).all()
-        
-        # 3. Monthly Service Trends (Line Chart)
+            func.sum(ServiceHistoryItem.cost)
+        ).join(ServiceHistory, ServiceHistory.car_id == Car.id
+        ).join(ServiceHistoryItem, ServiceHistoryItem.history_id == ServiceHistory.id
+        ).filter(Car.user_id == current_user.id
+        ).group_by(Car.id, Car.make, Car.model).all()
+
+        # 3. Monthly Service Trends
         monthly_data = db.session.query(
-            func.strftime('%Y-%m', ServiceHistory.service_date).label('month'),
+            func.date_format(ServiceHistory.service_date, '%Y-%m').label('month'),
             func.count(ServiceHistory.id),
-            func.sum(ServiceHistory.cost)
-        ).join(
-            Car, ServiceHistory.car_id == Car.id
+            func.sum(ServiceHistoryItem.cost)
+        ).join(ServiceHistoryItem, ServiceHistoryItem.history_id == ServiceHistory.id
+        ).join(Car, ServiceHistory.car_id == Car.id
         ).filter(
             Car.user_id == current_user.id,
             ServiceHistory.service_date >= datetime.now() - timedelta(days=365)
-        ).group_by(
-            'month'
-        ).order_by(
-            'month'
+        ).group_by('month'
+        ).order_by('month'
         ).all()
-        
-        # 4. Service Type Distribution (Bar Chart)
+
+        # 4. Service Type Distribution
         service_type_dist = db.session.query(
             ServiceType.name,
-            func.count(ServiceHistory.id)
-        ).join(
-            ServiceHistory, ServiceHistory.service_type_id == ServiceType.id
-        ).join(
-            Car, ServiceHistory.car_id == Car.id
-        ).filter(
-            Car.user_id == current_user.id
-        ).group_by(
-            ServiceType.name
-        ).order_by(
-            func.count(ServiceHistory.id).desc()
+            func.count(ServiceHistoryItem.id)
+        ).join(ServiceHistoryItem, ServiceType.id == ServiceHistoryItem.service_type_id
+        ).join(ServiceHistory, ServiceHistory.id == ServiceHistoryItem.history_id
+        ).join(Car, Car.id == ServiceHistory.car_id
+        ).filter(Car.user_id == current_user.id
+        ).group_by(ServiceType.name
+        ).order_by(func.count(ServiceHistoryItem.id).desc()
         ).limit(10).all()
-        
+
         # 5. Upcoming Services
         upcoming_services = Service.query.join(Car).filter(
             Car.user_id == current_user.id,
             Service.next_service_date >= datetime.now().date(),
             Service.next_service_date <= datetime.now().date() + timedelta(days=30)
-        ).order_by(
-            Service.next_service_date
-        ).all()
-        
-        # Prepare data for charts - FIXED DATA PREPARATION
+        ).order_by(Service.next_service_date).all()
+
+        # 6. Prepare chart data
         chart_data = {
             'cost_by_car': {
                 'labels': [f"{make} {model}" for make, model, _ in cost_by_car],
-                'data': [float(cost) for _, _, cost in cost_by_car],
+                'data': [float(cost or 0) for _, _, cost in cost_by_car],
                 'colors': ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b']
             },
             'monthly_trends': {
                 'labels': [row.month for row in monthly_data],
                 'counts': [row[1] for row in monthly_data],
-                'costs': [float(row[2]) for row in monthly_data]
+                'costs': [float(row[2] or 0) for row in monthly_data]
             },
             'service_types': {
                 'labels': [row[0] for row in service_type_dist],
                 'counts': [row[1] for row in service_type_dist]
             }
         }
-        
+
         return render_template(
             'analytics.html',
             total_cars=total_cars,
             total_services=total_services,
-            total_cost=total_cost,
+            total_cost=round(total_cost, 2),
             chart_data=chart_data,
             upcoming_services=upcoming_services,
             current_year=datetime.now().year
         )
-
-
-

@@ -54,7 +54,7 @@ body {
 
 /* Main content */
 .main-content {
-    min-height: calc(100vh - 56px);
+    min-height: auto;
     padding-top: 2rem;
     padding-bottom: 2rem;
 }
@@ -110,6 +110,8 @@ body {
     background-color: hsl(var(--danger));
     border-color: hsl(var(--danger));
 }
+
+ 
 
 /* Service status badges */
 .service-status {
@@ -263,7 +265,7 @@ body {
     padding: 1rem;
 }
 
-/* .alert-success {
+ .alert-success {
     background-color: hsl(var(--success) / 0.1);
     color: hsl(var(--success));
     border-left: 4px solid hsl(var(--success));
@@ -285,7 +287,7 @@ body {
     background-color: hsl(var(--info) / 0.1);
     color: hsl(var(--info));
     border-left: 4px solid hsl(var(--info));
-} */
+} 
 
 /* Landing page */
 .hero-section {

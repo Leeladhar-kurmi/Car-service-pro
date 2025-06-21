@@ -27,6 +27,7 @@ scheduler = APScheduler()
 def create_app():
     # Initialize Flask app
     app = Flask(__name__)
+    application = app
     
     # Configure app
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')

@@ -180,6 +180,13 @@ def register_routes(app, db, mail):
                     flash('Email is already registered.', 'danger')
                     return render_template('register.html', form=form, show_otp=False)
 
+                # Cooldown check (e.g., 60 seconds)
+                last_otp_time = session.get('otp_time')
+                if last_otp_time and time.time() - last_otp_time < 60:
+                    remaining = int(60 - (time.time() - last_otp_time))
+                    flash(f'Please wait {remaining} seconds before requesting another OTP.', 'warning')
+                    return render_template('register.html', form=form, show_otp=True)
+
                 otp = generate_otp()
                 if send_otp_email(email, otp):
                     session['otp'] = otp
@@ -189,7 +196,7 @@ def register_routes(app, db, mail):
                     session['otp_time'] = time.time()
                     session.pop('otp_verified', None)  # reset verification if resending OTP
 
-                    flash('OTP sent to your email.', 'info')
+                    flash('OTP sent to your email. It will expire in 5 minutes.', 'info')
                     show_otp = True
                 else:
                     flash('Failed to send OTP. Please try again.', 'danger')
@@ -224,16 +231,19 @@ def register_routes(app, db, mail):
                 if not user:
                     flash("Email not registered.", "danger")
                 else:
-                    if session.get('otp_sent'):
-                        flash("Please wait before requesting another OTP.", "warning")
-                    else:
-                        otp = generate_otp()
-                        session['reset_email'] = form.email.data
-                        session['reset_otp'] = otp
-                        session['otp_sent'] = True
-                        session['otp_created_at'] = datetime.now(timezone.utc)
-                        send_otp_email(form.email.data, otp)
-                        flash("OTP sent to your email. It will expire in 5 minutes.", "info")
+                    otp_created_at = session.get('otp_created_at')
+                    if otp_created_at:
+                        time_since_otp = datetime.now(timezone.utc) - otp_created_at
+                        if time_since_otp < timedelta(seconds = 60):
+                            flash(f"Please {60 - int(time_since_otp.total_seconds())} Seconds before requesting another OTP.", "warning")
+                    otp = generate_otp()
+                    
+                    session['reset_email'] = form.email.data
+                    session['reset_otp'] = otp
+                    session['otp_sent'] = True
+                    session['otp_created_at'] = datetime.now(timezone.utc)
+                    send_otp_email(form.email.data, otp)
+                    flash("OTP sent to your email. It will expire in 5 minutes.", "info")
 
             elif action == "verify_otp":
                 if not session.get('otp_sent'):
@@ -839,3 +849,13 @@ def register_routes(app, db, mail):
             upcoming_services=upcoming_services,
             current_year=datetime.now().year
         )
+        
+    # Test route for chack the error log file
+    # @app.route('/test-error')
+    # def trigger_error():
+    #     try:
+    #         1 / 0
+    #     except Exception as e:
+    #         app.logger.error(f'Error occurred: {e}', exc_info=True)
+    #     return 'Error has been logged.'
+    

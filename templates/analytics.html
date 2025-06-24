@@ -202,7 +202,7 @@
                                         <td>{{ service.service_type.name }}</td>
                                         <td>
                                             {% if service.last_service_date %}
-                                                {{ service.last_service_date.strftime('%m/%d/%Y') }}
+                                                {{ service.last_service_date.strftime('%d/%m/%Y') }}
                                             {% else %}
                                                 Never
                                             {% endif %}

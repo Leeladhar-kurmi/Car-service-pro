@@ -244,8 +244,8 @@
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container">
-    <a class="navbar-brand" href="{{ url_for('index') }}">
-      <i data-feather="car" class="me-2"></i>
+    <a class="navbar-brand me-5" href="{{ url_for('index') }}">
+      <i data-feather="truck" class="me-2"></i>
       Car Service Pro
     </a>
 
@@ -263,7 +263,7 @@
         </li>
         <li class="nav-item">
           <a class="nav-link {% if request.endpoint == 'cars' %}active{% endif %}" href="{{ url_for('cars') }}">
-            <i data-feather="car" class="me-1"></i>My Cars
+            <i data-feather="truck" class="me-1"></i>My Cars
           </a>
         </li>
         <li class="nav-item">
@@ -329,7 +329,7 @@
     <button class="install-close-btn" id="install-close-btn">×</button>
     <div class="install-prompt-content">
       <div class="install-prompt-icon">
-        <img src="/static/icons/icon-192.svg" alt="App Icon">
+        <img src="{{ url_for('static', filename='icons/icon-192.svg') }}" alt="App Icon">
       </div>
       <div class="install-prompt-text">
         <strong>Install CarServicePro</strong>
@@ -352,7 +352,7 @@
   <div class="container">
     <div class="row">
       <div class="col-md-6">
-        <p class="text-muted mb-0"><i data-feather="car" class="me-1"></i> Car Service Pro &copy; 2025</p>
+        <p class="text-muted mb-0"><i data-feather="truck" class="me-1"></i> Car Service Pro &copy; 2025</p>
       </div>
       <div class="col-md-6 text-md-end">
         <small class="text-muted">Never miss a service appointment</small>
@@ -373,10 +373,9 @@
 {% block scripts %}{% endblock %}
 
 <!-- Feather Icons -->
+<script src="https://unpkg.com/feather-icons"></script>
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    feather.replace();
-  });
+  feather.replace();
 </script>
 
 <script>

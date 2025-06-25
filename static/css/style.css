@@ -39,8 +39,23 @@ body {
 }
 
 .navbar-brand {
+    margin-top: -5px;
     font-weight: 600;
-    font-size: 2.0rem;
+    font-size: 2.5rem;
+}
+
+.navbar-brand svg {
+  width: 36px;
+  height: 36px;
+  vertical-align: middle;
+  margin-top: -10px; 
+}
+
+#navbarNav .nav-link svg {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-top: -2px; 
 }
 
 .navbar-nav .nav-link {

@@ -16,7 +16,7 @@
                     Keep your car running smoothly with intelligent service reminders, 
                     maintenance tracking, and scheduled notifications.
                 </p>
-                <div class="mt-4">
+                <div class="mt-4 d-flex flex-wrap justify-content-center gap-3">
                     <a href="{{ url_for('register') }}" class="btn btn-gradient-primary btn-lg px-5 me-3 rounded-pill shadow-lg">
                         <i data-feather="user-plus" class="me-2"></i>
                         Register Now
@@ -268,5 +268,9 @@
     document.addEventListener('DOMContentLoaded', function() {
         feather.replace();
     });
+</script>
+<script src="https://unpkg.com/feather-icons"></script>
+<script>
+  feather.replace();
 </script>
 {% endblock %}

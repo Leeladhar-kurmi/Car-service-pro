@@ -240,266 +240,158 @@
     {% block head %}{% endblock %}
 </head>
 <body class="{% if current_user.is_authenticated %}user-authenticated{% endif %}">
-    
-    <!-- Navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i data-feather="car" class="me-2"></i>
-                Car Service Pro
-            </a>
-            
-            {% if current_user.is_authenticated %}
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}" >
-                            <i data-feather="home" class="me-1" ></i>Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('cars') }}">
-                            <i data-feather="car" class="me-1" ></i>My Cars
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('history') }}">
-                            <i data-feather="clock" class="me-1"></i>Service History
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('analytics') }}">
-                            <i data-feather="clock" class="me-1"></i> Analysis
-                        </a>
-                    </li>
-                </ul>
-                
-                <ul class="navbar-nav">
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            {% if current_user.profile_image_url %}
-                                <img src="{{ current_user.profile_image_url }}" alt="Profile">
-                            {% else %}
-                                <i data-feather="user"></i>
-                            {% endif %}
-                                <span>{{ current_user.full_name }}</span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li>
-                                <div class="notifications-header">
-                                    NOTIFICATIONS
-                                    <span class="notification-status {% if current_user.push_subscription %}enabled{% endif %}">
-                                        {% if current_user.push_subscription %}Enabled{% else %}Disabled{% endif %}
-                                    </span>
-                                </div>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('settings') }}">
-                                    <i data-feather="settings"></i>
-                                    <span>Settings</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('dashboard') }}">
-                                    <i data-feather="home"></i>
-                                    <span>Dashboard</span>
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('reset_password') }}">
-                                    <i data-feather="reset_password"></i>
-                                    <span>Reset Password</span>
-                                </a>
-                            </li>
-                            <!--<li>
-                                <button id="notification-toggle" class="enable-notifications-btn">
-                                    <i data-feather="bell"></i>
-                                    <span>Enable Notifications</span>
-                                </button>
-                                <li><hr class="dropdown-divider"></li>
-                            </li> -->
-                            <li>
-                                <a class="dropdown-item logout-item" href="{{ url_for('logout') }}">
-                                    <i data-feather="log-out"></i>
-                                    <span>Logout</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
-            </div>
+
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      <i data-feather="car" class="me-2"></i>
+      Car Service Pro
+    </a>
+
+    {% if current_user.is_authenticated %}
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+            <i data-feather="home" class="me-1"></i>Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'cars' %}active{% endif %}" href="{{ url_for('cars') }}">
+            <i data-feather="car" class="me-1"></i>My Cars
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'history' %}active{% endif %}" href="{{ url_for('history') }}">
+            <i data-feather="clock" class="me-1"></i>Service History
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint == 'analytics' %}active{% endif %}" href="{{ url_for('analytics') }}">
+            <i data-feather="bar-chart-2" class="me-1"></i>Analytics
+          </a>
+        </li>
+      </ul>
+
+      <ul class="navbar-nav">
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            {% if current_user.profile_image_url %}
+              <img src="{{ current_user.profile_image_url }}" alt="Profile">
+            {% else %}
+              <i data-feather="user"></i>
             {% endif %}
+            <span>{{ current_user.full_name }}</span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+              <div class="notifications-header">
+                NOTIFICATIONS
+                <span class="notification-status {% if current_user.push_subscription %}enabled{% endif %}">
+                  {% if current_user.push_subscription %}Enabled{% else %}Disabled{% endif %}
+                </span>
+              </div>
+            </li>
+            <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i data-feather="settings"></i><span>Settings</span></a></li>
+            <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i data-feather="home"></i><span>Dashboard</span></a></li>
+            <li><a class="dropdown-item" href="{{ url_for('reset_password') }}"><i data-feather="lock"></i><span>Reset Password</span></a></li>
+            <li><a class="dropdown-item logout-item" href="{{ url_for('logout') }}"><i data-feather="log-out"></i><span>Logout</span></a></li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="container mt-3">
+      {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
-    </nav>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
 
-    <!-- Flash Messages -->
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <div class="container mt-3">
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-    {% endwith %}
+<!-- PWA Install Prompt -->
+<div class="install-prompt" id="pwa-install-prompt">
+  <div class="install-prompt-container">
+    <button class="install-close-btn" id="install-close-btn">×</button>
+    <div class="install-prompt-content">
+      <div class="install-prompt-icon">
+        <img src="/static/icons/icon-192.svg" alt="App Icon">
+      </div>
+      <div class="install-prompt-text">
+        <strong>Install CarServicePro</strong>
+        <span class="small">Get quick access from your home screen</span>
+      </div>
+      <div class="install-prompt-actions">
+        <button id="install-btn" class="btn btn-sm btn-install">Install</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        {% block content %}{% endblock %}
-    </main>
+<!-- Main Content -->
+<main class="main-content">
+  {% block content %}{% endblock %}
+</main>
 
-    <!-- Footer -->
-    <footer class="bg-light py-2 mt-1">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <p class="text-muted mb-0">
-                        <i data-feather="car" class="me-1"></i>
-                        Car Service Pro &copy; 2025
-                    </p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <small class="text-muted">
-                        Never miss a service appointment
-                    </small>
-                </div>
-            </div>
-        </div>
-    </footer>
+<!-- Footer -->
+<footer class="bg-light py-2 mt-1">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        <p class="text-muted mb-0"><i data-feather="car" class="me-1"></i> Car Service Pro &copy; 2025</p>
+      </div>
+      <div class="col-md-6 text-md-end">
+        <small class="text-muted">Never miss a service appointment</small>
+      </div>
+    </div>
+  </div>
+</footer>
 
-    <!-- Bootstrap JS -->
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script src="{{ url_for('static', filename='js/mileage-input.js') }}"></script>
+{% if current_user.is_authenticated %}
+  <script src="{{ url_for('static', filename='js/push-notifications.js') }}"></script>
+{% endif %}
+{% block scripts %}{% endblock %}
 
 <!-- Feather Icons -->
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        feather.replace();
-    });
+  document.addEventListener('DOMContentLoaded', () => {
+    feather.replace();
+  });
 </script>
 
-<!-- jQuery (required by Select2) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-<!-- Select2 Plugin -->
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-    $(document).ready(() => {
-        $('.select2-multiple').select2({
-            placeholder: "Select service types",
-            allowClear: true
-        });
+  // Auto-dismiss alerts after 3 seconds
+  document.addEventListener('DOMContentLoaded', () => {
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      setTimeout(() => {
+        alert.classList.remove('show');
+        alert.classList.add('fade');
+        setTimeout(() => alert.remove(), 300); // Remove from DOM after fade
+      }, 3000); // 3 seconds
     });
+  });
 </script>
 
-<!-- Custom JS Files -->
-<script src="{{ url_for('static', filename='js/app.js') }}"></script>
-<script src="{{ url_for('static', filename='js/mileage-input.js') }}"></script>
-
-{% if current_user.is_authenticated %}
-<script src="{{ url_for('static', filename='js/push-notifications.js') }}"></script>
-{% endif %}
-
-{% block scripts %}{% endblock %}
-
-{#<!-- Server Status Alert & Notification -->
-<script>
-    let alertTimeout;
-    let statusCheckTimeout;
-    let lastKnownStatus = null;
-
-    function showStatusAlert(message, type = 'success') {
-        const alertBox = document.getElementById('server-status-alert');
-        const messageEl = document.getElementById('server-status-message');
-
-        if (!alertBox || !messageEl) return;
-
-        // Cancel previous timeout
-        clearTimeout(alertTimeout);
-
-        // Update alert class and text
-        alertBox.className = `alert alert-${type} alert-dismissible fade`;
-        messageEl.textContent = message;
-
-        // Show it
-        alertBox.style.display = 'block';
-        alertBox.offsetHeight;  // force reflow
-        alertBox.classList.add('show');
-
-        // Auto hide after 3–5 seconds
-        alertTimeout = setTimeout(() => {
-            alertBox.classList.remove('show');
-            setTimeout(() => {
-                alertBox.style.display = 'none';
-            }, 300);
-        }, Math.floor(Math.random() * 2000) + 3000);
-    }
-
-    function checkServerStatus() {
-        fetch("/", { method: "HEAD", cache: "no-store" }).then(response => {
-            if (response.ok) {
-                if (lastKnownStatus !== "online") {
-                    showStatusAlert("Server is online", "success");
-                    lastKnownStatus = "online";
-                }
-                if (statusCheckTimeout) clearTimeout(statusCheckTimeout);
-            }
-        }).catch(() => {
-            if (lastKnownStatus !== "offline") {
-                showStatusAlert("Server is offline", "warning");
-                lastKnownStatus = "offline";
-            }
-            if (!statusCheckTimeout) {
-                statusCheckTimeout = setTimeout(checkServerStatus, 30000); // retry every 30 sec
-            }
-        });
-    }
-
-    // Run on page load and when returning to tab
-    document.addEventListener("DOMContentLoaded", () => {
-        setTimeout(checkServerStatus, 1000);
-    });
-    document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "visible") {
-            checkServerStatus();
-        }
-    });
-
-    // Manual dismiss
-    document.querySelector('#server-status-alert .btn-close').addEventListener('click', () => {
-        document.getElementById('server-status-alert').classList.remove('show');
-        setTimeout(() => {
-            document.getElementById('server-status-alert').style.display = 'none';
-        }, 300);
-    });
-</script>#}
-
-<!-- Feather icon recoloring on hover -->
-<script>
-
-    document.querySelectorAll('.dropdown-item, .enable-notifications-btn').forEach(item => {
-        item.addEventListener('mouseenter', function () {
-            const icon = this.querySelector('i, svg');
-            if (icon) {
-                icon.style.stroke = this.classList.contains('logout-item') ? '#dc3545' : '#007bff';
-            }
-        });
-        item.addEventListener('mouseleave', function () {
-            const icon = this.querySelector('i, svg');
-            if (icon) {
-                icon.style.stroke = this.classList.contains('logout-item') ? '#dc3545' : '#495057';
-            }
-        });
-    });
-</script>
-
-
-    {% block body_scripts %}{% endblock %}
 </body>
 </html>

@@ -1,6 +1,6 @@
 {
-    "name": "Car Service Reminder",
-    "short_name": "CarService",
+    "name": "CarServicePro",
+    "short_name": "CarServicePro",
     "description": "Progressive Web App for managing car service reminders and schedules",
     "start_url": "/",
     "display": "standalone",

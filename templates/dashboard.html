@@ -51,7 +51,7 @@
             <a href="{{ url_for('cars') }}" class="dashboard-widget widget-cars">
                 <h3>{{ user_cars|length }}</h3>
                 <p>Your Cars</p>
-                <i data-feather="truck" class="position-absolute" style="top: 1rem; right: 1rem; opacity: 0.7;"></i>
+                <i class="bi bi-car-front position-absolute fs-3" style="top: 0.7rem; right: 1rem; opacity: 0.7;"></i>
             </a>
         </div>
     </div>
@@ -62,7 +62,7 @@
         <div class="col-12">
             <div class="card text-center py-5">
                 <div class="card-body">
-                    <i data-feather="truck" style="width: 64px; height: 64px;" class="text-muted mb-3"></i>
+                    <i class="bi bi-car-front text-muted fs-1 mb-3" style="width: 64px; height: 64px;"></i>
                     <h4>No Cars Added Yet</h4>
                     <p class="text-muted mb-4">
                         Start by adding your first vehicle to begin tracking maintenance schedules.
@@ -103,9 +103,9 @@
                                     {% endif %}
                                 </small>
                             </div>
-                            <div class="text-end">
-                                <span class="service-status overdue">Overdue</span>
-                                <div class="mt-2">
+                            <div class="text-end d-flex flex-column align-items-end">
+                                <span class="service-status overdue text-nowrap">Overdue</span>
+                                <div class="mt-2 d-flex flex-column align-items-end">
                                     <a href="{{ url_for('car_services', car_id=service.car_id) }}" 
                                        class="btn btn-sm btn-outline-primary">Manage</a>
                                 </div>
@@ -146,9 +146,9 @@
                                     {% endif %}
                                 </small>
                             </div>
-                            <div class="text-end">
-                                <span class="service-status due-soon">Due Soon</span>
-                                <div class="mt-2">
+                            <div class="text-end d-flex flex-column align-items-end">
+                                <span class="service-status due-soon text-nowrap">Due Soon</span>
+                                <div class="mt-2 d-flex flex-column align-items-end">
                                     <a href="{{ url_for('car_services', car_id=service.car_id) }}" 
                                        class="btn btn-sm btn-outline-primary">Manage</a>
                                 </div>
@@ -229,7 +229,7 @@
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
-                        <i data-feather="truck" class="me-2"></i>
+                        <i class="bi bi-car-front me-2 fs-4"></i>
                         Your Cars ({{ user_cars|length }})
                     </h5>
                     <a href="{{ url_for('cars') }}" class="btn btn-sm btn-outline-primary">

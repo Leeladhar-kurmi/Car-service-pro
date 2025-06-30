@@ -491,3 +491,10 @@ body {
 .widget-info { background-color: #36b9cc; }
 .widget-warning { background-color: #f6c23e; }
 .widget-danger { background-color: #e74a3b; }
+
+
+@media (max-width:398px){
+    #botton-add{
+        margin-top: 5px;
+    }
+}

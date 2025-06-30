@@ -10,35 +10,32 @@ document.addEventListener('DOMContentLoaded', () => {
   const installCloseBtn = document.getElementById('install-close-btn');
   const installPrompt = document.getElementById('pwa-install-prompt');
 
-  // 1. Check if app is installed
   function isAppInstalled() {
-    return window.matchMedia('(display-mode: standalone)').matches ||
-           window.navigator.standalone ||
-           document.referrer.includes('android-app://');
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+    const ios = window.navigator.standalone === true;
+    const androidApp = document.referrer.startsWith('android-app://');
+    return standalone || ios || androidApp;
   }
 
-  // 2. Show/hide logic
   function showInstallPromotion() {
     if (installPrompt && !isAppInstalled()) {
       installPrompt.style.display = 'block';
-    //   console.log('Showing install promotion');
     }
   }
 
   function hideInstallPromotion() {
     if (installPrompt) {
       installPrompt.style.display = 'none';
-    //   console.log('Hiding install promotion');
     }
   }
 
-  // 3. If already installed, hide prompt
+  // Hide prompt if already installed
   if (isAppInstalled()) {
     hideInstallPromotion();
     localStorage.setItem('appInstalled', 'true');
   }
 
-  // 4. Listen for beforeinstallprompt
+  // Listen for beforeinstallprompt
   window.addEventListener('beforeinstallprompt', (e) => {
     if (isAppInstalled()) return;
 
@@ -50,15 +47,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 5. Listen for install event
+  // Handle appinstalled event
   window.addEventListener('appinstalled', () => {
-    // console.log('App was installed');
     hideInstallPromotion();
     deferredPrompt = null;
     localStorage.setItem('appInstalled', 'true');
   });
 
-  // 6. Install button handler
+  // Handle install button
   if (installBtn) {
     installBtn.addEventListener('click', async () => {
       if (!deferredPrompt) {
@@ -68,12 +64,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
-    //   console.log(`User response to install prompt: ${outcome}`);
+
+      if (outcome === 'accepted') {
+        hideInstallPromotion();
+        localStorage.setItem('appInstalled', 'true');
+      }
+
       deferredPrompt = null;
     });
   }
 
-  // 7. Close/dismiss button
+  // Handle close/dismiss button
   if (installCloseBtn) {
     installCloseBtn.addEventListener('click', () => {
       hideInstallPromotion();
@@ -81,13 +82,15 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 8. Re-check install status every hour (optional)
+  // Optional hourly re-check
   setInterval(() => {
     if (isAppInstalled()) {
       hideInstallPromotion();
+      localStorage.setItem('appInstalled', 'true');
     }
   }, 60 * 60 * 1000);
 });
+
 
 
 // ===== Mileage Formatting & Validation =====

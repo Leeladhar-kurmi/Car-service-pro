@@ -1,4 +1,4 @@
-from flask import session, render_template,Blueprint, redirect, url_for, flash, request, jsonify
+from flask import session, render_template,Blueprint, redirect, url_for, flash, request, jsonify, send_from_directory
 from flask_login import current_user, login_required, login_user, logout_user
 from datetime import datetime, date, timedelta, timezone
 from models import User, Car, Service, ServiceType, ServiceHistory, ServiceReminder, ServiceHistoryItem
@@ -13,6 +13,9 @@ import pyotp
 from pywebpush import webpush, WebPushException
 from sqlalchemy import func, extract
 from calendar import monthrange
+from collections import defaultdict
+import random
+# from scheduler import check_service_reminders
 
 def register_routes(app, db, mail):
     def create_default_service_types():
@@ -86,6 +89,7 @@ def register_routes(app, db, mail):
             app.logger.error(f"Error sending email: {str(e)}")
             app.logger.error(traceback.format_exc())
             return False  
+        
     @app.route('/')
     def index():
         """Landing page for logged out users, dashboard for logged in users"""
@@ -588,6 +592,10 @@ def register_routes(app, db, mail):
 
         # Also get filtered service history or data if needed
         selected_service_type = request.args.get('service_type')
+
+        total_cost = db.session.query(func.sum(ServiceHistory.total_cost))\
+            .filter(ServiceHistory.user_id == current_user.id)\
+            .scalar()
         
         if selected_service_type:
             # Filter logic, example:
@@ -608,7 +616,7 @@ def register_routes(app, db, mail):
         service_history = query.order_by(ServiceHistory.service_date.desc()).all()
         year=datetime.now().year
         
-        return render_template('services/history.html', service_history=service_history,year=year, service_types=service_types)
+        return render_template('services/history.html', total_cost=total_cost, service_history=service_history,year=year, service_types=service_types)
 
     @app.route('/cars/<int:car_id>/history/add', methods=['GET', 'POST'])
     @login_required
@@ -710,7 +718,7 @@ def register_routes(app, db, mail):
     @app.route('/service-worker.js')
     def service_worker():
         """Serve the service worker file"""
-        return app.send_static_file('sw.js')
+        return send_from_directory('static\js', 'sw.js')
 
 
     @app.route('/settings', methods=['GET'])
@@ -767,89 +775,150 @@ def register_routes(app, db, mail):
     @app.route('/analytics')
     @login_required
     def analytics():
-        # 1. Overall Statistics
-        total_cars = Car.query.filter_by(user_id=current_user.id).count()
-        total_services = ServiceHistory.query.join(Car).filter(Car.user_id == current_user.id).count()
 
-        total_cost = (
-            db.session.query(func.sum(ServiceHistoryItem.cost))
-            .join(ServiceHistory)
-            .join(Car)
-            .filter(Car.user_id == current_user.id)
-            .scalar()
-        ) or 0.0
+        def generate_color_list(n):
+            """Generate a list of n distinct pastel hex colors."""
+            colors = []
+            for _ in range(n):
+                hue = random.randint(0, 360)
+                saturation = 70 + random.randint(0, 20)
+                lightness = 60 + random.randint(0, 20)
+                color = f'hsl({hue}, {saturation}%, {lightness}%)'
+                colors.append(color)
+            return colors
+        
+        year = request.args.get('year', datetime.now().year, type=int)
+        month = request.args.get('month', None, type=int)
 
-        # 2. Cost by Car
-        cost_by_car = db.session.query(
-            Car.make,
-            Car.model,
-            func.sum(ServiceHistoryItem.cost)
-        ).join(ServiceHistory, ServiceHistory.car_id == Car.id
-        ).join(ServiceHistoryItem, ServiceHistoryItem.history_id == ServiceHistory.id
-        ).filter(Car.user_id == current_user.id
-        ).group_by(Car.id, Car.make, Car.model).all()
+        cars = Car.query.filter_by(user_id=current_user.id).all()
+        car_ids = [car.id for car in cars]
 
-        # 3. Monthly Service Trends
-        monthly_data = db.session.query(
-            func.date_format(ServiceHistory.service_date, '%Y-%m').label('month'),
-            func.count(ServiceHistory.id),
-            func.sum(ServiceHistoryItem.cost)
-        ).join(ServiceHistoryItem, ServiceHistoryItem.history_id == ServiceHistory.id
-        ).join(Car, ServiceHistory.car_id == Car.id
-        ).filter(
-            Car.user_id == current_user.id,
-            ServiceHistory.service_date >= datetime.now() - timedelta(days=365)
-        ).group_by('month'
-        ).order_by('month'
+        # Cost by Car
+        cost_by_car = {
+            f"{car.make} {car.model}": car.total_service_cost() or 0
+            for car in cars
+        }
+
+        # Monthly Trends (initialize all months)
+        month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+        monthly_counts = {m: 0 for m in month_labels}
+        monthly_costs = {m: 0.0 for m in month_labels}
+
+        query = db.session.query(ServiceHistory).filter(
+            ServiceHistory.user_id == current_user.id,
+            extract('year', ServiceHistory.service_date) == year
+        )
+        if month:
+            query = query.filter(extract('month', ServiceHistory.service_date) == month)
+
+        for record in query.all():
+            month_key = record.service_date.strftime('%b')
+            monthly_counts[month_key] += 1
+            monthly_costs[month_key] += record.total_cost or 0
+
+        # Service Type Distribution
+        type_distribution = defaultdict(int)
+        type_costs = defaultdict(float)
+
+        items = db.session.query(ServiceHistoryItem, ServiceType).join(ServiceType).join(ServiceHistory).filter(
+            ServiceHistory.user_id == current_user.id
         ).all()
 
-        # 4. Service Type Distribution
-        service_type_dist = db.session.query(
-            ServiceType.name,
-            func.count(ServiceHistoryItem.id)
-        ).join(ServiceHistoryItem, ServiceType.id == ServiceHistoryItem.service_type_id
-        ).join(ServiceHistory, ServiceHistory.id == ServiceHistoryItem.history_id
-        ).join(Car, Car.id == ServiceHistory.car_id
-        ).filter(Car.user_id == current_user.id
-        ).group_by(ServiceType.name
-        ).order_by(func.count(ServiceHistoryItem.id).desc()
-        ).limit(10).all()
+        for item, s_type in items:
+            type_distribution[s_type.name] += 1
+            type_costs[s_type.name] += item.cost or 0
 
-        # 5. Upcoming Services
-        upcoming_services = Service.query.join(Car).filter(
-            Car.user_id == current_user.id,
-            Service.next_service_date >= datetime.now().date(),
-            Service.next_service_date <= datetime.now().date() + timedelta(days=30)
-        ).order_by(Service.next_service_date).all()
+        today = datetime.today()
+        next_30_days = today + timedelta(days=30)
 
-        # 6. Prepare chart data
+        # Upcoming Service Reminders
+        upcoming_services = ServiceReminder.query.filter(
+            ServiceReminder.car_id.in_(car_ids),
+            ServiceReminder.status.in_(['pending', 'due_soon']),
+            ServiceReminder.reminder_date >= today,
+            ServiceReminder.reminder_date <= next_30_days
+        ).order_by(ServiceReminder.reminder_date.asc()).all()
+
+        # Prepare reminder_data for clean use in template
+        reminder_data = []
+        for r in upcoming_services:
+            car = Car.query.get(r.car_id)
+            service = Service.query.get(r.service_id)
+            if car and service:
+                reminder_data.append({
+                    'car_name': f"{car.make} {car.model}",
+                    'service_type': service.service_type.name,
+                    'next_date': r.reminder_date.strftime('%b %d') if r.reminder_date else 'N/A'
+                })
+
+        # Prepare chart data
         chart_data = {
             'cost_by_car': {
-                'labels': [f"{make} {model}" for make, model, _ in cost_by_car],
-                'data': [float(cost or 0) for _, _, cost in cost_by_car],
-                'colors': ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b']
+                'labels': list(cost_by_car.keys()),
+                'data': list(cost_by_car.values()),
+                'colors': [f'#{random.randint(0, 0xFFFFFF):06x}' for _ in cost_by_car]
             },
             'monthly_trends': {
-                'labels': [row.month for row in monthly_data],
-                'counts': [row[1] for row in monthly_data],
-                'costs': [float(row[2] or 0) for row in monthly_data]
+                'labels': month_labels,
+                'counts': [monthly_counts[m] for m in month_labels],
+                'costs': [monthly_costs[m] for m in month_labels]
             },
             'service_types': {
-                'labels': [row[0] for row in service_type_dist],
-                'counts': [row[1] for row in service_type_dist]
+                'labels': list(type_distribution.keys()),
+                'counts': list(type_distribution.values()),
+                'colors': [f'#{random.randint(0, 0xFFFFFF):06x}' for _ in type_distribution]
             }
         }
 
+        service_items_query = (
+            db.session.query(ServiceHistoryItem)
+            .join(ServiceHistory)
+            .join(Car)
+            .filter(Car.user_id == current_user.id)
+        )
+
+        service_items = service_items_query.all()
+
+        service_type_cost = {}
+        for item in service_items:
+            type_name = item.service_type.name
+            service_type_cost[type_name] = service_type_cost.get(type_name, 0) + (item.cost or 0)
+
+        chart_data['cost_by_service_type'] = {
+            'labels': list(service_type_cost.keys()),
+            'data': list(service_type_cost.values()),
+            'colors': generate_color_list(len(service_type_cost))  # helper to generate random colors
+        }
+
+        # Totals
+        total_cost = db.session.query(func.sum(ServiceHistory.total_cost))\
+            .filter(ServiceHistory.user_id == current_user.id).scalar() or 0.0
+
+        total_services = db.session.query(func.count(ServiceHistory.id))\
+            .filter(ServiceHistory.user_id == current_user.id).scalar()
+
+        # All service type names (optional use)
+        type_names = {t.id: t.name for t in ServiceType.query.all()}
+
+        # Render template
         return render_template(
             'analytics.html',
-            total_cars=total_cars,
+            total_cars=len(cars),
             total_services=total_services,
-            total_cost=round(total_cost, 2),
+            total_cost=total_cost,
             chart_data=chart_data,
             upcoming_services=upcoming_services,
-            current_year=datetime.now().year
+            upcoming_reminders=reminder_data,
+            selected_year=year,
+            selected_month=month,
+            type_names=type_names
         )
-        
+    
+    @app.route('/privacy')
+    def privacy_policy():
+        return render_template('privacy.html', current_year=datetime.now().year)
+          
     # Test route for chack the error log file
     # @app.route('/test-error')
     # def trigger_error():
@@ -858,4 +927,8 @@ def register_routes(app, db, mail):
     #     except Exception as e:
     #         app.logger.error(f'Error occurred: {e}', exc_info=True)
     #     return 'Error has been logged.'
-    
+
+    # @app.route('/test-reminders')
+    # def test_reminders():
+    #     check_service_reminders()
+    #     return "Checked reminders!"

@@ -2,7 +2,7 @@
     "name": "Car Service Pro",
     "short_name": "Car Service Pro",
     "description": "Progressive Web App for managing car service reminders and schedules",
-    "start_url": "/carservicepro",
+    "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#007bff",

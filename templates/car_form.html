@@ -32,7 +32,7 @@
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">
-                        <i data-feather="truck" class="me-2"></i>
+                        <i class="bi bi-car-front me-2"></i>
                         Vehicle Information
                     </h5>
                 </div>
@@ -119,7 +119,7 @@
 
                             <div class="card-header">
                                 <h6 class="mb-0">
-                                    <i data-feather="truck" class="me-2"></i>
+                                    <i class="bi bi-car-front me-2"></i>
                                     Insurance Information
                                 </h6>
                             </div>
@@ -217,7 +217,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to delete <strong>{{ car }}</strong>?</p>
+                <p>Are you sure you want to delete <strong>{{ car.make }} {{ car.model }} {{ car.registration_number }}</strong>?</p>
                 <div class="alert alert-warning">
                     <i data-feather="alert-triangle" class="me-2"></i>
                     <strong>Warning:</strong> This action cannot be undone. All service schedules and history records for this car will also be permanently deleted.

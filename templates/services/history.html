@@ -66,7 +66,7 @@
                     </div>
                     {% else %}
                     <a href="{{ url_for('add_car') }}" class="btn btn-primary btn-lg">
-                        <i data-feather="truck" class="me-2"></i>Add a Car First
+                        <i class="bi bi-car-front me-2"></i>Add a Car First
                     </a>
                     {% endif %}
                 </div>
@@ -87,14 +87,7 @@
                         </div>
                         <div class="col-sm-3">
                             <h5 class="text-success">
-                                {% for history in service_history %}
-                                    {% set total_cost = history.service_items | map(attribute='cost') | sum %}
-                                    {% if total_cost %}
-                                        <strong class="text-success">₹{{ '%.2f' % total_cost }}</strong>
-                                    {% else %}
-                                        <span class="text-muted">—</span>
-                                    {% endif %}
-                                {% endfor %}
+                                {{ total_cost or 0 }}
                             </h5>
                             <small class="text-muted">Total Spent</small>
                         </div>
@@ -266,8 +259,7 @@
                                         {% else %}
                                             <span class="text-muted">—</span>
                                         {% endif %}
-</td>
-
+                                    </td>
                                     <td>
                                         {% if history.service_provider %}
                                             {{ history.service_provider }}

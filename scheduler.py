@@ -2,7 +2,7 @@ from flask_apscheduler import APScheduler
 from datetime import datetime, timedelta
 import logging
 from app import app, db
-from models import Service, User
+from models import ServiceReminder, User
 from push_notifications import send_push_notification
 import json
 
@@ -15,9 +15,9 @@ def check_service_reminders():
         logging.info("Checking for service reminders...")
         
         # Get all active services that haven't been notified yet
-        services = Service.query.filter_by(
-            is_active=True,
-            notification_sent=False
+        services = ServiceReminder.query.filter(
+            ServiceReminder.status == 'pending',
+            ServiceReminder.reminder_date <= datetime.now()
         ).all()
         
         notifications_sent = 0

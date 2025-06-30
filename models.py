@@ -63,6 +63,7 @@ class Car(db.Model):
 
     # Relationships
     services = db.relationship('Service', backref='car', lazy=True, cascade='all, delete-orphan')
+    reminders = db.relationship('ServiceReminder', backref='car', lazy=True)
     service_history = db.relationship('ServiceHistory', back_populates='car', lazy=True, cascade='all, delete-orphan')
 
     @property
@@ -281,10 +282,7 @@ class ServiceHistory(db.Model):
     __tablename__ = 'service_history'
     id = db.Column(db.Integer, primary_key=True)
     car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
-
-    # Add this line:
     user_id = db.Column(db.String(36), db.ForeignKey('users.id'))
-
     service_date = db.Column(db.Date, nullable=False)
     mileage = db.Column(db.Integer)
     total_cost = db.Column(db.Float)

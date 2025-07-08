@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Services for {{ car.model }}•{{car.registration_number}} - Car Service Pro{% endblock %}
+{% block title %}Services for {{ car.model }}•{{car.registration_number}} - Vehicle Service Pro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -18,7 +18,7 @@
                 </div>
                 <div class="row g-2 ">
                     <a href="{{ url_for('cars') }}" class="btn btn-outline-secondary me-2">
-                        <i data-feather="arrow-left" class="me-1"></i>Back to Cars
+                        <i data-feather="arrow-left" class="me-1"></i>Back to Vehicles
                     </a>
                     <a href="{{ url_for('add_service', car_id=car.id) }}" class="btn btn-primary">
                         <i data-feather="plus" class="me-1"></i>Add Service
@@ -28,7 +28,7 @@
         </div>
     </div>
 
-    <!-- Car Summary Card -->
+    <!-- Vehicle Summary Card -->
     <div class="row mb-4">
         <div class="col-12">
             <div class="card bg-light">
@@ -57,7 +57,7 @@
                                 <i data-feather="plus" class="me-1"></i>Add Service Record
                             </a>
                             <a href="{{ url_for('edit_car', car_id=car.id) }}" class="btn btn-sm btn-outline-secondary" id="botton-add">
-                                <i data-feather="edit-2" class="me-1" ></i>Update Car Info
+                                <i data-feather="edit-2" class="me-1" ></i>Update Vehicle Info
                             </a>
                         </div>
                     </div>
@@ -221,7 +221,7 @@
                         </div>
                         <div class="col-sm-6 col-lg-3">
                             <a href="{{ url_for('edit_car', car_id=car.id) }}" class="btn btn-outline-secondary w-100">
-                                <i data-feather="edit-2" class="me-1"></i>Update Car
+                                <i data-feather="edit-2" class="me-1"></i>Update Vehicle
                             </a>
                         </div>
                     </div>

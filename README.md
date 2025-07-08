@@ -43,7 +43,7 @@ Think of this as your car's health report card. You'll see:
 - Future services (in blue)
 - Your recent service history
 
-### 🚙 Managing Your Cars
+### 🚙 Managing Your Vehicles
 You can:
 - Add multiple cars (great for families!)
 - Update information (like when you get new mileage readings)

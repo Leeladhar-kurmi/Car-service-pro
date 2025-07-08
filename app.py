@@ -10,6 +10,7 @@ from flask_apscheduler import APScheduler
 from datetime import datetime, timedelta
 from models import ServiceReminder, Service
 from flask_mail import Message
+from scheduler import start_scheduler
 
 # Load environment variables
 load_dotenv()
@@ -106,6 +107,8 @@ def create_app():
     # SECRET + VAPID
     SECRET_KEY = os.environ.get("SECRET_KEY")
     VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY")
+    VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY")
+    VAPID_CLAIMS =({"sub": "mailto:admin@carservicepro.com"})
 
 
     # Print all with types
@@ -125,6 +128,8 @@ def create_app():
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key')
     app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {"pool_recycle": 280,"pool_pre_ping": True}
+    # print(f"VAPID_PUBLIC_KEY ({type(VAPID_PUBLIC_KEY)}): {VAPID_PUBLIC_KEY}")
     
     # Email configuration from env
     app.config['MAIL_SERVER'] = MAIL_SERVER
@@ -135,6 +140,10 @@ def create_app():
     app.config['MAIL_PASSWORD'] = MAIL_PASSWORD
     app.config['MAIL_DEFAULT_SENDER'] = MAIL_DEFAULT_SENDER
     app.config['VAPID_PUBLIC_KEY'] = VAPID_PUBLIC_KEY
+    app.config['VAPID_PRIVATE_KEY'] = VAPID_PRIVATE_KEY
+    app.config['VAPID_CLAIMS'] = VAPID_CLAIMS
+    # print(f"VAPID_PRIVATE_KEY ({type(VAPID_PRIVATE_KEY)}): {VAPID_PRIVATE_KEY}")
+    # print(f"VAPID_CLAIMS ({type(VAPID_CLAIMS)}): {VAPID_CLAIMS}")
 
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -147,9 +156,9 @@ def create_app():
     login_manager.login_view = 'login'
 
     # Configure Flask-APScheduler
-    app.config['SCHEDULER_API_ENABLED'] = True
+    app.config['SCHEDULER_API_ENABLED'] = False
     scheduler.init_app(app)
-    scheduler.start()
+    start_scheduler(app)
 
     # Create database directory if it doesn't exist
     os.makedirs('instance', exist_ok=True)
@@ -168,60 +177,11 @@ def create_app():
     # Create tables and register routes
     with app.app_context():
         db.create_all()
-        logging.info("Database tables created")
+        # logging.info("Database tables created")
         
         # Register routes (this will also create default service types)
         from routes import register_routes
         register_routes(app, db, mail)
-
-    # Add scheduler jobs
-    @scheduler.task('cron', id='check_reminders', hour='*')
-    def check_reminders():
-        """Check and send service reminders"""
-        with app.app_context():
-            # Get pending reminders that are due
-            pending_reminders = ServiceReminder.query.filter_by(
-                status='pending'
-            ).filter(
-                ServiceReminder.reminder_date <= datetime.utcnow()
-            ).all()
-            
-            for reminder in pending_reminders:
-                service = reminder.service
-                car = service.car
-                user = car.user
-                
-                # Prepare notification message
-                message = f"""
-                Service Reminder: {service.service_type.name}
-                Car: {car.nickname} ({car.make} {car.model} {car.year})
-                Due Date: {service.next_service_date.strftime('%Y-%m-%d')}
-                """
-                
-                # Send email notification
-                if reminder.reminder_type in ['email', 'both']:
-                    try:
-                        msg = Message(
-                            'Car Service Reminder',
-                            recipients=[user.email],
-                            body=message
-                        )
-                        mail.send(msg)
-                    except Exception as e:
-                        app.logger.error(f"Failed to send email reminder: {str(e)}")
-                
-                # Send push notification
-                if reminder.reminder_type in ['push', 'both']:
-                    try:
-                        # Your push notification logic here
-                        pass
-                    except Exception as e:
-                        app.logger.error(f"Failed to send push reminder: {str(e)}")
-                
-                # Update reminder status
-                reminder.status = 'sent'
-                db.session.commit()
-
 
     return app
 

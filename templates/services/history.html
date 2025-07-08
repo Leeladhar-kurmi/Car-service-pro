@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Service History - Car Service Pro{% endblock %}
+{% block title %}Service History - Vehicle Service Pro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -41,7 +41,7 @@
     <!-- No History State - Only show when there are no filters applied -->
     <div class="row">
         <div class="col-12">
-            <div class="card text-center py-5">
+            <div class="card text-center py-5 border-left-primary">
                 <div class="card-body">
                     <i data-feather="clock" style="width: 64px; height: 64px;" class="text-muted mb-3"></i>
                     <h4>No Service History Yet</h4>
@@ -66,7 +66,7 @@
                     </div>
                     {% else %}
                     <a href="{{ url_for('add_car') }}" class="btn btn-primary btn-lg">
-                        <i class="bi bi-car-front me-2"></i>Add a Car First
+                        <i class="bi bi-car-front me-2"></i>Add a Vehicle First
                     </a>
                     {% endif %}
                 </div>
@@ -78,7 +78,7 @@
     <!-- Summary Stats -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card bg-light">
+            <div class="card bg-light border-left-primary">
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-sm-3">
@@ -118,9 +118,9 @@
                 <div class="card-body">
                     <form method="GET" class="row g-3 align-items-end">
                         <div class="col-md-3">
-                            <label for="car_filter" class="form-label">Filter by Car</label>
+                            <label for="car_filter" class="form-label">Filter by Vehicle</label>
                             <select name="car" id="car_filter" class="form-select">
-                                <option value="">All Cars</option>
+                                <option value="">All Vehicles</option>
                                 {% for car in current_user.cars %}
                                 <option value="{{ car.id }}" {% if request.args.get('car')|string == car.id|string %}selected{% endif %}>
                                     {{ car.make }} {{ car.model }} {{ car.registration_number }}
@@ -216,7 +216,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th>Date</th>
-                                    <th>Car</th>
+                                    <th>Vehicle</th>
                                     <th>Service</th>
                                     <th>Mileage</th>
                                     <th>Cost</th>
@@ -377,43 +377,45 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const serviceTypeSelect = document.getElementById("service_type_ids");
-    const costContainer = document.getElementById("dynamic-cost-fields");
-    const totalCostInput = document.getElementById("total_cost");
+        const costContainer = document.getElementById("dynamic-cost-fields");
+        const totalCostInput = document.getElementById("total_cost");
 
-    function updateCostFields() {
-        costContainer.innerHTML = "";
-        let total = 0;
-        [...serviceTypeSelect.selectedOptions].forEach((option, index) => {
-            const id = option.value;
-            const label = option.text;
-
-            const div = document.createElement("div");
-            div.classList.add("mb-2");
-
-            div.innerHTML = `
-                <label>Cost for ${label}</label>
-                <input type="number" name="cost_${id}" class="form-control cost-field" min="0" step="0.01" value="0">
-            `;
-
-            costContainer.appendChild(div);
-        });
-
-        attachCostListeners();
-    }
-
-    function attachCostListeners() {
-        const costFields = document.querySelectorAll(".cost-field");
-        costFields.forEach(input => {
-            input.addEventListener("input", () => {
+        if (serviceTypeSelect && costContainer && totalCostInput) {
+            function updateCostFields() {
+                costContainer.innerHTML = "";
                 let total = 0;
-                costFields.forEach(f => total += parseFloat(f.value || 0));
-                totalCostInput.value = total.toFixed(2);
-            });
-        });
-    }
+                [...serviceTypeSelect.selectedOptions].forEach((option, index) => {
+                    const id = option.value;
+                    const label = option.text;
 
-    serviceTypeSelect.addEventListener("change", updateCostFields);
-});
+                    const div = document.createElement("div");
+                    div.classList.add("mb-2");
+
+                    div.innerHTML = `
+                        <label>Cost for ${label}</label>
+                        <input type="number" name="cost_${id}" class="form-control cost-field" min="0" step="0.01" value="0">
+                    `;
+
+                    costContainer.appendChild(div);
+                });
+
+                attachCostListeners();
+            }
+
+            function attachCostListeners() {
+                const costFields = document.querySelectorAll(".cost-field");
+                costFields.forEach(input => {
+                    input.addEventListener("input", () => {
+                        let total = 0;
+                        costFields.forEach(f => total += parseFloat(f.value || 0));
+                        totalCostInput.value = total.toFixed(2);
+                    });
+                });
+            }
+
+            serviceTypeSelect.addEventListener("change", updateCostFields);
+        }
+    });
 </script>
 
 

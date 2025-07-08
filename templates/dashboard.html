@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard - Car Service Pro{% endblock %}
+{% block title %}Dashboard - Vehicle Service Pro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -14,7 +14,7 @@
                 </div>
                 <div>
                     <a href="{{ url_for('add_car') }}" class="btn btn-primary">
-                        <i data-feather="plus" class="me-1"></i>Add Car
+                        <i data-feather="plus" class="me-1"></i>Add Vehicle
                     </a>
                 </div>
             </div>
@@ -50,25 +50,25 @@
         <div class="col-sm-6 col-lg-3">
             <a href="{{ url_for('cars') }}" class="dashboard-widget widget-cars">
                 <h3>{{ user_cars|length }}</h3>
-                <p>Your Cars</p>
+                <p>Your Vehicles</p>
                 <i class="bi bi-car-front position-absolute fs-3" style="top: 0.7rem; right: 1rem; opacity: 0.7;"></i>
             </a>
         </div>
     </div>
 
     {% if not user_cars %}
-    <!-- No Cars State -->
+    <!-- No Vehicles State -->
     <div class="row">
         <div class="col-12">
-            <div class="card text-center py-5">
+            <div class="card text-center py-5 border-left-primary">
                 <div class="card-body">
                     <i class="bi bi-car-front text-muted fs-1 mb-3" style="width: 64px; height: 64px;"></i>
-                    <h4>No Cars Added Yet</h4>
+                    <h4>No Vehicles Added Yet</h4>
                     <p class="text-muted mb-4">
                         Start by adding your first vehicle to begin tracking maintenance schedules.
                     </p>
                     <a href="{{ url_for('add_car') }}" class="btn btn-primary btn-lg">
-                        <i data-feather="plus" class="me-2"></i>Add Your First Car
+                        <i data-feather="plus" class="me-2"></i>Add Your First Vehicle
                     </a>
                 </div>
             </div>
@@ -179,11 +179,11 @@
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th>Car</th>
-                                    <th>Registration NUmber</th>
+                                    <th>Vehicle Name</th>
+                                    <th>Registration Number</th>
                                     {#<th>Service</th>#}
                                     <th>Mileage</th>
-                                    <th>Cost</th>
+                                    <th>Service Cost</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -223,14 +223,14 @@
     </div>
     {% endif %}
 
-    <!-- Your Cars -->
+    <!-- Your Vehicles -->
     <div class="row">
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">
                         <i class="bi bi-car-front me-2 fs-4"></i>
-                        Your Cars ({{ user_cars|length }})
+                        Your Vehicles ({{ user_cars|length }})
                     </h5>
                     <a href="{{ url_for('cars') }}" class="btn btn-sm btn-outline-primary">
                         View All
@@ -269,7 +269,7 @@
                     {% if user_cars|length > 4 %}
                     <div class="text-center mt-3">
                         <a href="{{ url_for('cars') }}" class="btn btn-outline-primary">
-                            View All {{ user_cars|length }} Cars
+                            View All {{ user_cars|length }} Vehicles
                         </a>
                     </div>
                     {% endif %}

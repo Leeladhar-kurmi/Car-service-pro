@@ -1,21 +1,22 @@
-from flask import session, render_template,Blueprint, redirect, url_for, flash, request, jsonify, send_from_directory
+from flask import session, render_template, redirect, url_for, flash, request, jsonify, send_from_directory
 from flask_login import current_user, login_required, login_user, logout_user
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from models import User, Car, Service, ServiceType, ServiceHistory, ServiceReminder, ServiceHistoryItem
-from forms import CarForm, ServiceForm, ServiceHistoryForm, RegistrationForm, ResetPasswordForm
+from forms import CarForm, ServiceForm, RegistrationForm, ResetPasswordForm, UpdateEmailForm
+from push_notifications import PushNotificationService
 import json
 import uuid
 import time
 import traceback
 from flask_mail import Message
-from werkzeug.security import generate_password_hash, check_password_hash
 import pyotp
-from pywebpush import webpush, WebPushException
 from sqlalchemy import func, extract
-from calendar import monthrange
 from collections import defaultdict
 import random
 # from scheduler import check_service_reminders
+
+# NOTE: If you see import errors for flask_mail, pyotp, sqlalchemy, install them with:
+# pip install flask-mail pyotp sqlalchemy
 
 def register_routes(app, db, mail):
     def create_default_service_types():
@@ -53,15 +54,15 @@ def register_routes(app, db, mail):
         try:
             sender = app.config.get('MAIL_DEFAULT_SENDER') or app.config.get('MAIL_USERNAME')
             if not sender:
-                app.logger.error("No sender email configured in app config")
+                # app.logger.error("No sender email configured in app config")
                 return False
 
             # Debug logging before sending
-            app.logger.debug(f"Email configuration:")
-            app.logger.debug(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
-            app.logger.debug(f"MAIL_PORT: {app.config.get('MAIL_PORT')} (type: {type(app.config.get('MAIL_PORT'))}")
-            app.logger.debug(f"MAIL_USE_TLS: {app.config.get('MAIL_USE_TLS')}")
-            app.logger.debug(f"MAIL_USERNAME: {app.config.get('MAIL_USERNAME')}")
+            # app.logger.debug(f"Email configuration:")
+            # app.logger.debug(f"MAIL_SERVER: {app.config.get('MAIL_SERVER')}")
+            # app.logger.debug(f"MAIL_PORT: {app.config.get('MAIL_PORT')} (type: {type(app.config.get('MAIL_PORT'))}")
+            # app.logger.debug(f"MAIL_USE_TLS: {app.config.get('MAIL_USE_TLS')}")
+            # app.logger.debug(f"MAIL_USERNAME: {app.config.get('MAIL_USERNAME')}")
             
             msg = Message(
                 subject='Your CarServicePro Registration OTP',
@@ -82,12 +83,12 @@ def register_routes(app, db, mail):
             """
             
             mail.send(msg)
-            app.logger.debug("Email sent successfully")
+            # app.logger.debug("Email sent successfully")
             return True
             
         except Exception as e:
-            app.logger.error(f"Error sending email: {str(e)}")
-            app.logger.error(traceback.format_exc())
+            # app.logger.error(f"Error sending email: {str(e)}")
+            # app.logger.error(traceback.format_exc())
             return False  
         
     @app.route('/')
@@ -152,7 +153,7 @@ def register_routes(app, db, mail):
 
                 except Exception as e:
                     db.session.rollback()
-                    app.logger.error(f"Database error: {e}")
+                    # app.logger.error(f"Database error: {e}")
                     flash('An error occurred during registration. Please try again.', 'danger')
                     return render_template('register.html', form=form, show_otp=False)
 
@@ -277,7 +278,99 @@ def register_routes(app, db, mail):
                         flash("Error updating password.", "danger")
 
         return render_template("reset_password.html", form=form)
+    
+    @app.route('/settings/email', methods=['GET', 'POST'])
+    @login_required
+    def update_email():
+        form = UpdateEmailForm()
 
+        # Only clear session on the first GET visit
+        if request.method == 'GET' and not session.get('email_otp_sent'):
+            session.pop('pending_new_email', None)
+            session.pop('email_otp', None)
+            session.pop('email_otp_sent', None)
+            session.pop('email_otp_verified', None)
+            session.pop('email_otp_created_at', None)
+
+        # Pre-fill new_email if stored
+        if not form.new_email.data and session.get('pending_new_email'):
+            form.new_email.data = session['pending_new_email']
+
+        print("Form validated:", form.validate_on_submit())
+        print("Form errors:", form.errors)
+        print("Request method:", request.method)
+        print("Action received:", request.form.get('action'))
+        print("New email entered:", form.new_email.data)
+
+        if form.validate_on_submit():
+            action = request.form.get('action')
+
+            # Step 1: Send OTP
+            if action == 'send_otp':
+                new_email = form.new_email.data.strip()
+
+                if new_email == current_user.email:
+                    flash("New email cannot be the same as your current email.", "warning")
+                    return redirect(url_for('update_email'))
+
+                # Check cooldown
+                last_sent = session.get('email_otp_created_at')
+                if last_sent:
+                    last_sent_dt = datetime.fromisoformat(last_sent)
+                    time_diff = datetime.now(timezone.utc) - last_sent_dt
+                    if time_diff < timedelta(seconds=60):
+                        wait_time = 60 - int(time_diff.total_seconds())
+                        flash(f"Please wait {wait_time} seconds before requesting another OTP.", "warning")
+                        return redirect(url_for('update_email'))
+
+                otp = str(random.randint(100000, 999999))
+
+                # Send OTP using working function
+                if send_otp_email(new_email, otp):
+                    session['pending_new_email'] = new_email
+                    session['email_otp'] = otp
+                    session['email_otp_sent'] = True
+                    session['email_otp_verified'] = False
+                    session['email_otp_created_at'] = datetime.now(timezone.utc).isoformat()
+                    flash("OTP sent to your new email address. It will expire in 5 minutes.", "info")
+                else:
+                    flash("Failed to send email. Please try again later.", "danger")
+
+                return redirect(url_for('update_email'))
+
+            # Step 2: Verify OTP
+            elif action == 'verify_otp':
+                entered_otp = form.otp.data.strip()
+                saved_otp = session.get('email_otp')
+                sent_time = session.get('email_otp_created_at')
+
+                if not saved_otp or not sent_time:
+                    flash("No OTP has been sent yet.", "warning")
+                    return redirect(url_for('update_email'))
+
+                if datetime.now(timezone.utc) - datetime.fromisoformat(sent_time) > timedelta(minutes=5):
+                    flash("OTP has expired. Please request a new one.", "danger")
+                    session.pop('email_otp', None)
+                    session.pop('email_otp_sent', None)
+                    return redirect(url_for('update_email'))
+
+                if entered_otp != saved_otp:
+                    flash("Invalid OTP. Please try again.", "danger")
+                    return redirect(url_for('update_email'))
+
+                # OTP is valid → update email
+                new_email = session.get('pending_new_email')
+                current_user.email = new_email
+                db.session.commit()
+
+                session.clear()
+                flash("Email updated successfully. Please log in again.", "success")
+                logout_user()
+                return redirect(url_for('login'))
+
+        return render_template("settings_email.html", form=form)
+
+    
     @app.route('/login', methods=['GET', 'POST'])
     def login():
         """Handle user login"""
@@ -398,7 +491,7 @@ def register_routes(app, db, mail):
             flash('Car added successfully!', 'success')
             return redirect(url_for('cars'))
         
-        return render_template('car_form.html', form=form, title='Add Car')
+        return render_template('car_form.html', form=form, title='Add Vehicle')
 
     @app.route('/cars/<int:car_id>/edit', methods=['GET', 'POST'])
     @login_required
@@ -439,7 +532,7 @@ def register_routes(app, db, mail):
     @app.route('/cars/<int:car_id>/services/add', methods=['GET', 'POST'])
     @login_required
     def add_service(car_id):
-        """Add a new service schedule for a car"""
+        """Add or update a service schedule for a car"""
         car = Car.query.filter_by(id=car_id, user_id=current_user.id).first_or_404()
         form = ServiceForm()
         
@@ -467,31 +560,31 @@ def register_routes(app, db, mail):
                 except (ValueError, TypeError):
                     interval_months = 13
 
-                service = Service(
-                    car_id=car_id,
-                    service_type_id=service_type_id,
-                    interval_months=interval_months,
-                    interval_mileage=interval_mileage,
-                    last_service_date=form.last_service_date.data,
-                    last_service_mileage=form.last_service_mileage.data,
-                    notify_days_before=form.notify_days_before.data
-                )
-                db.session.add(service)
-            
-            # Commit first to ensure service has an ID and relationships are established
+                # Check if a service already exists for this car and service_type
+                existing_service = Service.query.filter_by(car_id=car_id, service_type_id=service_type_id).first()
+                if existing_service:
+                    # Update the existing service
+                    existing_service.interval_months = interval_months
+                    existing_service.interval_mileage = interval_mileage
+                    existing_service.last_service_date = form.last_service_date.data
+                    existing_service.last_service_mileage = form.last_service_mileage.data
+                    existing_service.notify_days_before = form.notify_days_before.data
+                    existing_service.updated_at = datetime.now()
+                    existing_service.update_schedule()
+                else:
+                    # Create a new service
+                    service = Service(
+                        car_id=car_id,
+                        service_type_id=service_type_id,
+                        interval_months=interval_months,
+                        interval_mileage=interval_mileage,
+                        last_service_date=form.last_service_date.data,
+                        last_service_mileage=form.last_service_mileage.data,
+                        notify_days_before=form.notify_days_before.data
+                    )
+                    db.session.add(service)
             db.session.commit()
-            
-            # Now update schedules for all newly created services
-            for service_type_id in form.service_type_ids.data:
-                service = Service.query.filter_by(
-                    car_id=car_id,
-                    service_type_id=service_type_id
-                ).order_by(Service.id.desc()).first()
-                if service:
-                    service.update_schedule()
-            
-            db.session.commit()
-            flash('Service schedules added successfully!', 'success')
+            flash('Service schedules added or updated successfully!', 'success')
             return redirect(url_for('car_services', car_id=car_id))
         
         return render_template('services/service_form.html', form=form, title='Add Service Schedule', car=car, service_type_intervals = service_type_intervals)
@@ -640,7 +733,6 @@ def register_routes(app, db, mail):
             total_cost = 0.0
             service_items = []
 
-            # Collect all selected service items and costs
             for service_type_id in form.service_type_ids.data:
                 cost_key = f"service_cost_{service_type_id}"
                 try:
@@ -654,6 +746,17 @@ def register_routes(app, db, mail):
                     cost=cost
                 )
                 service_items.append(item)
+
+                # Update the corresponding Service schedule
+                service = Service.query.filter_by(car_id=car.id, service_type_id=service_type_id).first()
+                if service:
+                    service.last_service_date = form.last_service_date.data
+                    service.last_service_mileage = form.last_service_mileage.data
+                    service.last_service_cost = cost
+                    service.last_service_notes = form.notes.data
+                    service.update_schedule()
+                    # Set status to upcoming by recalculating
+                    # Optionally, delete the old schedule and create a new one if needed
 
             # Create main history record
             history = ServiceHistory(
@@ -672,7 +775,7 @@ def register_routes(app, db, mail):
             db.session.add(history)
             db.session.commit()
 
-            flash('Service history recorded successfully.', 'success')
+            flash('Service history recorded and schedule updated successfully.', 'success')
             return redirect(url_for('car_services', car_id=car.id))
 
         return render_template(
@@ -683,42 +786,55 @@ def register_routes(app, db, mail):
             service_type_intervals=service_type_intervals
         )
 
+    @app.route('/vapid-public-key')
+    def vapid_public_key():
+        """Endpoint to get VAPID public key"""
+        return jsonify({
+            'key': app.config['VAPID_PUBLIC_KEY']
+        })
 
-    @app.route('/api/push-subscription', methods=['POST'])
+    @app.route('/api/push-subscription', methods=['POST', 'DELETE'])
     @login_required
-    def save_push_subscription():
-        """Save push notification subscription"""
-        subscription = request.get_json()
-        current_user.push_subscription = json.dumps(subscription)
-        db.session.commit()
-        return jsonify({'success': True})
+    def handle_push_subscription():
+        """Handle push notification subscription changes"""
+        if request.method == 'POST':
+            # Save subscription
+            subscription = request.get_json()
+            if not subscription:
+                return jsonify({'error': 'Invalid data'}), 400
+                
+            current_user.push_subscription = json.dumps(subscription)
+            db.session.commit()
+            return jsonify({'success': True})
+            
+        elif request.method == 'DELETE':
+            # Remove subscription
+            data = request.get_json()
+            if not data or not data.get('endpoint'):
+                return jsonify({'error': 'Endpoint required'}), 400
+                
+            if current_user.push_subscription:
+                try:
+                    sub_data = json.loads(current_user.push_subscription)
+                    if sub_data.get('endpoint') == data['endpoint']:
+                        current_user.push_subscription = None
+                        db.session.commit()
+                except json.JSONDecodeError:
+                    pass
+                    
+            return jsonify({'success': True})
 
-    def send_push_notification(user, message, title="Car Service Reminder"):
-        """Send push notification to a user"""
-        if not user.push_subscription:
-            return False
-        
-        try:
-            subscription_info = json.loads(user.push_subscription)
-            webpush(
-                subscription_info=subscription_info,
-                data=json.dumps({
-                    'title': title,
-                    'body': message,
-                    'icon': '/static/icons/icon-192.svg'
-                }),
-                vapid_private_key=app.config['VAPID_PRIVATE_KEY'],
-                vapid_claims=app.config['VAPID_CLAIMS']
-            )
-            return True
-        except WebPushException as e:
-            app.logger.error(f"Failed to send push notification: {str(e)}")
-            return False
-
-    @app.route('/service-worker.js')
-    def service_worker():
-        """Serve the service worker file"""
-        return send_from_directory('static\js', 'sw.js')
+    @app.route('/api/test-notification', methods=['POST'])
+    @login_required
+    def send_test_notification():
+        """Send a test push notification"""
+        if PushNotificationService.send_test_notification(current_user):
+            return jsonify({'success': True})
+        return jsonify({'error': 'Failed to send notification'}), 500
+    
+    @app.route('/service-worker')
+    def serve_sw():
+        return send_from_directory('static', 'js/service-worker.js', mimetype='application/javascript')
 
 
     @app.route('/settings', methods=['GET'])
@@ -754,16 +870,6 @@ def register_routes(app, db, mail):
         flash('Settings updated successfully!', 'success')
         return redirect(url_for('settings'))
 
-    @app.route('/settings/email', methods=['POST'])
-    @login_required
-    def update_email():
-        """Update user email address"""
-        new_email = request.form.get('email')
-        if new_email and new_email != current_user.email:
-            current_user.email = new_email
-            db.session.commit()
-            flash('Email address updated successfully!', 'success')
-        return redirect(url_for('settings'))
 
     # Initialize default service types
     with app.app_context():
@@ -918,6 +1024,73 @@ def register_routes(app, db, mail):
     @app.route('/privacy')
     def privacy_policy():
         return render_template('privacy.html', current_year=datetime.now().year)
+    
+    @app.route('/create-test-reminder')
+    def create_test_reminder():
+        try:
+            # Create a test user
+            user = User.query.filter_by(email='testuser@example.com').first()
+            if not user:
+                user = User(email='testuser@example.com', username='Test User')
+                user.set_password('test123')  # if you use password auth
+                db.session.add(user)
+                db.session.commit()
+
+            # Create a car for the user
+            car = Car.query.filter_by(user_id=user.id, nickname='TestCar').first()
+            if not car:
+                car = Car(
+                    user_id=user.id,
+                    make='Honda',
+                    model='City',
+                    year=2020,
+                    nickname='TestCar'
+                )
+                db.session.add(car)
+                db.session.commit()
+
+            # Create a service type
+            service_type = ServiceType.query.filter_by(name='Oil Change').first()
+            if not service_type:
+                service_type = ServiceType(name='Oil Change')
+                db.session.add(service_type)
+                db.session.commit()
+
+            # Create a service record
+            service = Service(
+                car_id=car.id,
+                service_type_id=service_type.id,
+                date=datetime.utcnow() - timedelta(days=90),
+                mileage=20000,
+                next_service_date=datetime.utcnow()  # due today
+            )
+            db.session.add(service)
+            db.session.commit()
+
+            # Create a reminder
+            reminder = ServiceReminder(
+                service_id=service.id,
+                reminder_type='email',  # or 'push' or 'both'
+                reminder_date=datetime.utcnow(),  # due now
+                status='pending'
+            )
+            db.session.add(reminder)
+            db.session.commit()
+
+            return jsonify({"status": "success", "message": "Test reminder created."})
+
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)})
+        
+
+    @app.route('/offline')
+    def offline():
+        return render_template('offline.html')
+    
+    
+    @app.route('/manifest')
+    def manifest():
+        return send_from_directory('static', 'manifest.json')
           
     # Test route for chack the error log file
     # @app.route('/test-error')

@@ -313,9 +313,9 @@ class ServiceReminder(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable=False)
     car_id = db.Column(db.Integer, db.ForeignKey('cars.id'), nullable=False)
-    reminder_date = db.Column(db.DateTime, nullable=False)
+    reminder_date = db.Column(db.DateTime, nullable=False, index=True)
     reminder_type = db.Column(db.String(20), nullable=False)  # 'email', 'push', 'both'
-    status = db.Column(db.String(20), default='pending')  # 'pending', 'sent', 'cancelled'
+    status = db.Column(db.String(20), default='pending', index=True)  # 'pending', 'sent', 'cancelled'
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     @staticmethod
@@ -338,3 +338,23 @@ class ServiceReminder(db.Model):
             db.session.commit()
             return reminder
         return None
+
+    def update_status(self, new_status: str):
+        """Update the status of the reminder and commit."""
+        self.status = new_status
+        db.session.commit()
+        return self
+
+    def send_notification(self, user, title, message, url=None, icon=None):
+        """Send a push notification and update status based on result."""
+        from push_notifications import PushNotificationService
+        success = PushNotificationService.send_to_user(
+            user=user,
+            title=title,
+            body=message,
+            url=url,
+            icon=icon
+        )
+        self.status = 'sent' if success else 'failed'
+        db.session.commit()
+        return success

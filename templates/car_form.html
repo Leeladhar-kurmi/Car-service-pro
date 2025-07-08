@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ title }} - Car Service Pro{% endblock %}
+{% block title %}{{ title }} - Vehicle Service Pro{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -20,7 +20,7 @@
                 </div>
                 <div>
                     <a href="{{ url_for('cars') }}" class="btn btn-outline-secondary">
-                        <i data-feather="arrow-left" class="me-1"></i>Back to Cars
+                        <i data-feather="arrow-left" class="me-1"></i>Back to Vehicles
                     </a>
                 </div>
             </div>
@@ -74,7 +74,7 @@
                                         {% for error in form.year.errors %}{{ error }}{% endfor %}
                                     </div>
                                 {% endif %}
-                                <div class="form-text">Model year (1900-2030)</div>
+                                <div class="form-text">Model year (1900-{{ form.years }})</div>
                             </div>
 
                             <!-- Registration Number -->
@@ -159,7 +159,7 @@
                                         {% if car %}
                                         <button type="button" class="btn btn-outline-danger" 
                                                 data-bs-toggle="modal" data-bs-target="#deleteModal">
-                                            <i data-feather="trash-2" class="me-1"></i>Delete Car
+                                            <i data-feather="trash-2" class="me-1"></i>Delete Vehicle
                                         </button>
                                         {% endif %}
                                     </div>
@@ -170,7 +170,7 @@
                                         </a>
                                         <button type="submit" class="btn btn-primary">
                                             <i data-feather="save" class="me-1"></i>
-                                            {% if car %}Update Car{% else %}Add Car{% endif %}
+                                            {% if car %}Update Vehicle{% else %}Add Vehicle{% endif %}
                                         </button>
                                     </div>
                                 </div>
@@ -190,7 +190,7 @@
                     </h6>
                 </div>
                 <div class="card-body">
-                    <p class="mb-2">After adding your car, you can:</p>
+                    <p class="mb-2">After adding your vehicle, you can:</p>
                     <ul class="mb-0">
                         <li>Set up service schedules for oil changes, tire rotations, and more</li>
                         <li>Add your service history to track maintenance records</li>
@@ -212,7 +212,7 @@
             <div class="modal-header">
                 <h5 class="modal-title text-danger" id="deleteModalLabel">
                     <i data-feather="alert-triangle" class="me-2"></i>
-                    Delete Car
+                    Delete Vehicle
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -220,14 +220,14 @@
                 <p>Are you sure you want to delete <strong>{{ car.make }} {{ car.model }} {{ car.registration_number }}</strong>?</p>
                 <div class="alert alert-warning">
                     <i data-feather="alert-triangle" class="me-2"></i>
-                    <strong>Warning:</strong> This action cannot be undone. All service schedules and history records for this car will also be permanently deleted.
+                    <strong>Warning:</strong> This action cannot be undone. All service schedules and history records for this vehicle will also be permanently deleted.
                 </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"><i data-feather="x" class="me-1"></i>Cancel</button>
                 <form method="POST" action="{{ url_for('delete_car', car_id=car.id) }}" class="d-inline">
                     <button type="submit" class="btn btn-danger">
-                        <i data-feather="trash-2" class="me-1"></i>Delete Car
+                        <i data-feather="trash-2" class="me-1"></i>Delete Vehicle
                     </button>
                 </form>
             </div>

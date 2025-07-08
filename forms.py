@@ -1,9 +1,9 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, IntegerField, SelectField, DateField, TextAreaField, DecimalField, PasswordField, SelectMultipleField
+from wtforms import StringField, IntegerField, SelectField, DateField, TextAreaField, DecimalField, PasswordField, SelectMultipleField, SubmitField
 from wtforms.validators import DataRequired, Email, Length, NumberRange, Optional, EqualTo, ValidationError
 from wtforms.widgets import TextInput, NumberInput, ListWidget, CheckboxInput
 from models import ServiceType, Car
-from datetime import date
+from datetime import date, datetime
 from flask import request
 from wtforms import SelectMultipleField, widgets
 
@@ -28,9 +28,10 @@ class MileageInput(TextInput):
         return super().__call__(field, **kwargs)
 
 class CarForm(FlaskForm):
+    years = datetime.now().year
     make = StringField('Brand', validators=[DataRequired(), Length(min=1, max=50)])
     model = StringField('Model', validators=[DataRequired(), Length(min=1, max=50)])
-    year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=1900, max=2030)], 
+    year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=1900, max=years)], 
                        widget=NumberInput())
     registration_number = StringField('Registration Number', 
                                     validators=[DataRequired(), Length(min=10, max=10)])
@@ -213,4 +214,25 @@ class ResetPasswordForm(FlaskForm):
 
             return valid
 
+        return super().validate(extra_validators=extra_validators)
+    
+
+class UpdateEmailForm(FlaskForm):
+    new_email = StringField("New Email", validators=[DataRequired(), Email(), Length(max=120)])
+    otp = StringField("OTP", validators=[Length(min=6, max=6)])
+    submit = SubmitField("Submit")
+
+    def validate(self, extra_validators=None):
+        action = request.form.get('action', '')
+
+        if action == "send_otp":
+            return self.new_email.validate(self)
+
+        elif action == "verify_otp":
+            valid = True
+            if not self.otp.data or len(self.otp.data.strip()) != 6:
+                self.otp.errors.append("Please enter a valid 6-digit OTP.")
+                valid = False
+            return valid
+        
         return super().validate(extra_validators=extra_validators)

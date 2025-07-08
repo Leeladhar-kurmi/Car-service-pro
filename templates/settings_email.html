@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header text-center">
+                    <h3>Update Email</h3>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST" novalidate>
+                        {{ form.hidden_tag() }}
+
+                        <div class="mb-3">
+                            {{ form.new_email.label }}
+                            {{ form.new_email(class="form-control", placeholder="Enter your new email") }}
+                            {% for error in form.new_email.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+
+                        {% if session.get('email_otp_sent') %}
+                        <div class="mb-3">
+                            {{ form.otp.label }}
+                            {{ form.otp(class="form-control", placeholder="Enter OTP") }}
+                            {% for error in form.otp.errors %}
+                                <div class="text-danger small">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="d-grid gap-2">
+                            {% if not session.get('email_otp_sent') %}
+                                <button type="submit" name="action" value="send_otp" class="btn btn-primary">Send OTP</button>
+                            {% else %}
+                                <button type="submit" name="action" value="verify_otp" class="btn btn-success">Verify & Update Email</button>
+                            {% endif %}
+                            <a href="{{ url_for('settings') }}" class="btn btn-secondary">Cancel</a>
+                        </div>
+                    </form>
+
+
+                </div>
+                <div class="card-footer text-center">
+                    <a href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if session.get('email_otp_sent') and session.get('otp_time') %}
+<script>
+    const cooldown = 60;
+    let remaining = localStorage.getItem('email_otp_cooldown');
+    remaining = remaining ? parseInt(remaining) : cooldown;
+    const btn = document.getElementById('resend-btn');
+
+    if (btn) {
+        btn.disabled = true;
+        const interval = setInterval(() => {
+            if (remaining > 0) {
+                btn.textContent = `Resend OTP (${remaining}s)`;
+                btn.disabled = true;
+                remaining--;
+                localStorage.setItem('email_otp_cooldown', remaining);
+            } else {
+                clearInterval(interval);
+                btn.textContent = 'Resend OTP';
+                btn.disabled = false;
+                localStorage.removeItem('email_otp_cooldown');
+            }
+        }, 1000);
+    }
+</script>
+{% endif %}
+{% endblock %}

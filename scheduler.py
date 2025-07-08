@@ -1,98 +1,102 @@
 from flask_apscheduler import APScheduler
-from datetime import datetime, timedelta
+from datetime import datetime
 import logging
-from app import app, db
-from models import ServiceReminder, User
-from push_notifications import send_push_notification
-import json
+from models import ServiceReminder
+from push_notifications import PushNotificationService
 
 scheduler = APScheduler()
 
-
 def check_service_reminders():
     """Check for services that need reminders and send notifications"""
+    from app import db, app  # Import here to avoid circular import at module level
     with app.app_context():
         logging.info("Checking for service reminders...")
         
-        # Get all active services that haven't been notified yet
-        services = ServiceReminder.query.filter(
+        # Get pending reminders due now or in past
+        pending_reminders = ServiceReminder.query.filter(
             ServiceReminder.status == 'pending',
-            ServiceReminder.reminder_date <= datetime.now()
+            ServiceReminder.reminder_date <= datetime.utcnow()
         ).all()
         
         notifications_sent = 0
         
-        for service in services:
-            status = service.get_due_status()
-            if status['is_due'] or status['is_due_soon']:
+        for reminder in pending_reminders:
+            try:
+                car = reminder.car
+                user = car.user  # Corrected from car.owner
+                service = reminder.service
+                
+                if not user.push_subscription:
+                    continue
+                    
+                # Build notification message
+                if reminder.status == 'overdue':
+                    title = f"Service Overdue: {service.service_type.name}"
+                    message = f"Your {car.nickname or car.make} is overdue for {service.service_type.name}"
+                else:
+                    title = f"Service Due Soon: {service.service_type.name}"
+                    message = f"Your {car.nickname or car.make} needs {service.service_type.name} soon"
+                
+                # Add details
+                details = []
+                if service.next_service_date:
+                    days_left = (service.next_service_date - datetime.utcnow().date()).days
+                    if days_left <= 0:
+                        details.append(f"Overdue by {-days_left} days")
+                    else:
+                        details.append(f"Due in {days_left} days")
+                
+                if service.next_service_mileage and car.current_mileage:
+                    miles_left = service.next_service_mileage - car.current_mileage
+                    if miles_left <= 0:
+                        details.append(f"Overdue by {-miles_left} miles")
+                    else:
+                        details.append(f"Due in {miles_left} miles")
+                
+                if details:
+                    message += f" ({', '.join(details)})"
+                
                 # Send notification
-                user = service.car.owner
-                if user.push_subscription:
-                    try:
-                        subscription_info = json.loads(user.push_subscription)
-                        
-                        # Build notification message
-                        if status['is_due']:
-                            title = f"Service Overdue: {service.service_type.name}"
-                            message = f"Your {service.car} is overdue for {service.service_type.name}"
-                        else:
-                            title = f"Service Due Soon: {service.service_type.name}"
-                            message = f"Your {service.car} will need {service.service_type.name} soon"
-                        
-                        # Add specific details about why it's due
-                        details = []
-                        if status['due_by_date'] and status['days_remaining'] is not None:
-                            if status['days_remaining'] <= 0:
-                                details.append("Overdue by date")
-                            else:
-                                details.append(f"Due in {status['days_remaining']} days")
-                                
-                        if status['due_by_mileage'] and status['km_remaining'] is not None:
-                            if status['km_remaining'] <= 0:
-                                details.append(f"Overdue by {abs(status['km_remaining'])} KM")
-                            else:
-                                details.append(f"Due in {status['km_remaining']} KM")
-                        
-                        if details:
-                            message += f" ({', '.join(details)})"
-                        
-                        # Send push notification
-                        send_push_notification(
-                            subscription_info,
-                            title,
-                            message,
-                            icon='/static/icons/icon-192.svg',
-                            badge='/static/icons/icon-192.svg'
-                        )
-                        
-                        # Mark as notified
-                        service.notification_sent = True
-                        notifications_sent += 1
-                        
-                    except Exception as e:
-                        logging.error(f"Failed to send notification for service {service.id}: {str(e)}")
+                success = PushNotificationService.send_to_user(
+                    user=user,
+                    title=title,
+                    body=message,
+                    url=f"/cars/{car.id}/services",
+                    icon='/static/icons/icon-192.svg'
+                )
+                
+                if success:
+                    reminder.status = 'sent'
+                    notifications_sent += 1
+                else:
+                    reminder.status = 'failed'
+                    
+                db.session.commit()
+                
+            except Exception as e:
+                logging.error(f"Failed to process reminder {reminder.id}: {str(e)}")
+                db.session.rollback()
         
-        if notifications_sent > 0:
-            db.session.commit()
-            logging.info(f"Sent {notifications_sent} service reminder notifications")
-        else:
-            logging.info("No service reminders to send")
-
+        logging.info(f"Sent {notifications_sent} notifications")
+        return notifications_sent
 
 def start_scheduler(app):
     """Initialize and start the scheduler"""
-    scheduler.init_app(app)
-    scheduler.start()
-    
-    # Add job to check service reminders daily at 9 AM
-    scheduler.add_job(
-        func=check_service_reminders,
-        trigger="cron",
-        hour=9,
-        minute=0,
-        id='service_reminders',
-        name='Check service reminders',
-        replace_existing=True
-    )
-    
-    logging.info("Scheduler started with service reminder job")
+    if not scheduler.running:
+        scheduler.init_app(app)
+        
+        # Add job to check service reminders daily at 9 AM
+        scheduler.add_job(
+            id='service_reminders',
+            func=check_service_reminders,
+            trigger='cron',
+            hour=9,
+            minute=0,
+            replace_existing=True
+        )
+        
+        try:
+            scheduler.start()
+            logging.info("Scheduler started successfully")
+        except Exception as e:
+            logging.error(f"Failed to start scheduler: {str(e)}")

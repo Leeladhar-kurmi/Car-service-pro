@@ -41,6 +41,20 @@
                         {{ form.hidden_tag() }}
                         
                         <div class="row g-3">
+                            <!-- Type -->
+                            <div class="col-md-6">
+                                <label for="{{ form.vehicle_type.id }}" class="form-label">{{ form.vehicle_type.label.text }}</label>
+                                <div class="input-group">
+                                    {{ form.vehicle_type(class="form-select") }}
+                                </div>
+                                {% if form.vehicle_type.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.vehicle_type.errors %}{{ error }}{% endfor %}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">Current odometer reading</div>
+                            </div>
+
                             <!-- Make -->
                             <div class="col-md-6">
                                 <label for="{{ form.make.id }}" class="form-label">{{ form.make.label.text }}</label>
@@ -50,8 +64,9 @@
                                         {% for error in form.make.errors %}{{ error }}{% endfor %}
                                     </div>
                                 {% endif %}
-                                <div class="form-text">e.g., Toyota, Honda, Ford</div>
+                                <div class="form-text">e.g., Tata, Honda, Ford</div>
                             </div>
+
 
                             <!-- Model -->
                             <div class="col-md-6">
@@ -79,14 +94,41 @@
 
                             <!-- Registration Number -->
                             <div class="col-md-6">
+                                <label for="{{ form.vin.id }}" class="form-label">{{ form.vin.label.text }}</label>
+                                {{ form.vin(class="form-control") }}
+                                {% if form.vin.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.vin.errors %}{{ error }}{% endfor %}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">Vehicle Chassis number (e.g, ABCDEF123G4H56789)</div>
+                            </div>
+                            
+                            <!-- Vehicle Identification Number -->
+                            <div class="col-md-6">
                                 <label for="{{ form.registration_number.id }}" class="form-label">{{ form.registration_number.label.text }}</label>
                                 {{ form.registration_number(class="form-control") }}
                                 {% if form.registration_number.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.registration_number.errors %}{{ error }}{% endfor %}
-                                    </div>
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.registration_number.errors %}{{ error }}{% endfor %}
+                                </div>
                                 {% endif %}
-                                <div class="form-text">License plate number</div>
+                                <div class="form-text">License plate number (e.g, AB01CD1234)</div>
+                            </div>
+                            
+                            <!-- Current Mileage -->
+                            <div class="col-md-6">
+                                <label for="{{ form.current_mileage.id }}" class="form-label">{{ form.current_mileage.label.text }}</label>
+                                <div class="input-group">
+                                    {{ form.current_mileage(class="form-control") }}
+                                    <span class="input-group-text">KMs</span>
+                                </div>
+                                {% if form.current_mileage.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {% for error in form.current_mileage.errors %}{{ error }}{% endfor %}
+                                </div>
+                                {% endif %}
+                                <div class="form-text">Current odometer reading</div>
                             </div>
 
                             <!-- Color -->
@@ -100,23 +142,8 @@
                                 {% endif %}
                                 <div class="form-text">Vehicle color</div>
                             </div>
-
-                            <!-- Current Mileage -->
-                            <div class="col-md-6">
-                                <label for="{{ form.current_mileage.id }}" class="form-label">{{ form.current_mileage.label.text }}</label>
-                                <div class="input-group">
-                                    {{ form.current_mileage(class="form-control") }}
-                                    <span class="input-group-text">miles</span>
-                                </div>
-                                {% if form.current_mileage.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.current_mileage.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                                <div class="form-text">Current odometer reading</div>
-                            </div>
                             <hr>
-
+                            
                             <div class="card-header">
                                 <h6 class="mb-0">
                                     <i class="bi bi-car-front me-2"></i>

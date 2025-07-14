@@ -26,7 +26,7 @@
                             {% for car in current_user.cars %}
                             <li>
                                 <a class="dropdown-item" href="{{ url_for('add_service_history', car_id=car.id) }}">
-                                    <i data-feather="plus" class="me-2"></i>{{ car.make }} {{ car.model }} {{ car.registration_number }}
+                                    <i data-feather="" class="me-2"></i>{{ car.make }} {{ car.model }} {{ car.registration_number }}
                                 </a>
                             </li>
                             {% endfor %}
@@ -41,7 +41,7 @@
     <!-- No History State - Only show when there are no filters applied -->
     <div class="row">
         <div class="col-12">
-            <div class="card text-center py-5 border-left-primary">
+            <div class="card text-center py-5">
                 <div class="card-body">
                     <i data-feather="clock" style="width: 64px; height: 64px;" class="text-muted mb-3"></i>
                     <h4>No Service History Yet</h4>
@@ -78,31 +78,31 @@
     <!-- Summary Stats -->
     <div class="row mb-4">
         <div class="col-12">
-            <div class="card bg-light border-left-primary">
+            <div class="card bg-light">
                 <div class="card-body">
                     <div class="row text-center">
                         <div class="col-sm-3">
-                            <h5 class="text-primary">{{ service_history|length }}</h5>
+                            <h4 class="text-primary fw-bold">{{ service_history|length }}</h4>
                             <small class="text-muted">Total Services</small>
                         </div>
                         <div class="col-sm-3">
-                            <h5 class="text-success">
+                            <h4 class="text-success fw-bold">
                                 {{ total_cost or 0 }}
-                            </h5>
+                            </h4>
                             <small class="text-muted">Total Spent</small>
                         </div>
                         <div class="col-sm-3">
-                            <h5 class="text-info">
+                            <h4 class="text-info fw-bold">
                                 {% set this_year = service_history|select('test_year_filter', year)|list|length %}
                                 {{ this_year }}
-                            </h5>
+                            </h4>
                             <small class="text-muted">This Year</small>
                         </div>
                         <div class="col-sm-3">
-                            <h5 class="text-warning">
+                            <h4 class="text-warning fw-bold">
                                 {% set recent_services = service_history[:30] %}
                                 {{ recent_services|length if recent_services|length <= 30 else '30+' }}
-                            </h5>
+                            </h4>
                             <small class="text-muted">Recent (30 days)</small>
                         </div>
                     </div>
@@ -117,28 +117,47 @@
             <div class="card">
                 <div class="card-body">
                     <form method="GET" class="row g-3 align-items-end">
-                        <div class="col-md-3">
-                            <label for="car_filter" class="form-label">Filter by Vehicle</label>
-                            <select name="car" id="car_filter" class="form-select">
-                                <option value="">All Vehicles</option>
-                                {% for car in current_user.cars %}
+                        
+                        <!-- Vehicle Type Filter -->
+                        <div class="col-md-2">
+                            <label for="car_filter" class="form-label">Vehicle Type</label>
+                            <select name="vehicle_type" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Types</option>
+                            {% for vt in vehicle_types %}
+                                <option value="{{ vt }}" {% if request.args.get('vehicle_type') == vt %}selected{% endif %}>
+                                {{ vt|capitalize }}
+                                </option>
+                            {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Vehicle Name Filter -->
+                        <div class="col-md-2">
+                            <label for="car_filter" class="form-label">Vehicle</label>
+                            <select name="car" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Vehicles</option>
+                            {% for car in user_cars %}
                                 <option value="{{ car.id }}" {% if request.args.get('car')|string == car.id|string %}selected{% endif %}>
-                                    {{ car.make }} {{ car.model }} {{ car.registration_number }}
+                                {{ car.make }} {{ car.model }}
                                 </option>
-                                {% endfor %}
+                            {% endfor %}
                             </select>
                         </div>
-                        <div class="col-md-3">
-                            <label for="service_filter" class="form-label">Filter by Service</label>
-                            <select name="service_type" id="service_filter" class="form-select">
-                                <option value="">All Services</option>
-                                {% for service_type in service_types %}
-                                <option value="{{ service_type.id }}" {% if request.args.get('service_type')|string == service_type.id|string %}selected{% endif %}>
-                                    {{ service_type.name }}
+
+                        <!-- Service Type Filter -->
+                        <div class="col-md-2">
+                            <label for="service_filter" class="form-label">Service</label>
+                            <select name="service_type" class="form-select" onchange="this.form.submit()">
+                            <option value="">All Services</option>
+                            {% for st in service_types %}
+                                <option value="{{ st.id }}" {% if request.args.get('service_type')|string == st.id|string %}selected{% endif %}>
+                                {{ st.name }}
                                 </option>
-                                {% endfor %}
+                            {% endfor %}
                             </select>
                         </div>
+
+
                         <div class="col-md-2">
                             <label for="year_filter" class="form-label">Year</label>
                             <select name="year" id="year_filter" class="form-select">
@@ -191,7 +210,7 @@
                             No service records match your filter criteria.
                         </p>
                         <div class="btn-group">
-                            <a href="{{ url_for('history') }}" class="btn btn-outline-secondary">
+                            <a href="{{ url_for('history') }}" class="btn btn-outline-secondary me-1 ">
                                 <i data-feather="x" class="me-1"></i>Clear Filters
                             </a>
                             <div class="btn-group">
@@ -217,7 +236,9 @@
                                 <tr>
                                     <th>Date</th>
                                     <th>Vehicle</th>
+                                    <th>Name</th>
                                     <th>Service</th>
+                                    <th>Description</th>
                                     <th>Mileage</th>
                                     <th>Cost</th>
                                     <th>Provider</th>
@@ -233,15 +254,23 @@
                                         <small class="text-muted">{{ history.service_date.strftime('%A') }}</small>
                                     </td>
                                     <td>
+                                        <strong>{{ history.car.vehicle_type.capitalize() }}</strong>
+                                    </td>
+                                    <td>
                                         <strong>{{ history.car.make }} {{ history.car.model }}</strong>
                                         <br>
                                         <small class="text-muted">{{ history.car.registration_number }}</small>
                                     </td>
                                    <td>
                                         {% for item in history.service_items %}
-                                            <span class="badge bg-primary">{{ item.service_type.name }}</span><br>
+                                            {{ loop.index }}. <span class="badge bg-primary">{{ item.service_type.name }}</span><br>
+                                        {% endfor %}
+                                    </td>
+                                   <td>
+                                        {% for item in history.service_items %}
+                                            {{ loop.index }}.
                                             {% if item.service_type.description %}
-                                                <small class="text-muted">{{ item.service_type.description }}</small><br>
+                                                <small >{{ item.service_type.description }}</small><br>
                                             {% endif %}
                                         {% endfor %}
                                     </td>
@@ -286,7 +315,7 @@
     </div>
 
     <!-- Charts and Analytics (Future Enhancement) -->
-    <div class="row mt-4">
+    <div class="row mt-4 g-3">
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">

@@ -59,6 +59,7 @@ class Car(db.Model):
     registration_number = db.Column(db.String(100), unique=True, nullable=False)
     insurance_company = db.Column(db.String(50))
     expiry_date = db.Column(db.Date)
+    vehicle_type = db.Column(db.String(20), nullable=False, default='car')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationships
@@ -97,10 +98,15 @@ class ServiceType(db.Model):
     """Service type model for predefined service types"""
     __tablename__ = 'service_types'
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False, unique=True)
+    name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
     default_interval_months = db.Column(db.Integer)
     default_interval_mileage = db.Column(db.Integer)
+    vehicle_type = db.Column(db.String(10))
+
+    __table_args__ = (
+    db.UniqueConstraint('name', 'vehicle_type', name='_name_vehicle_type_uc'),
+)
     
     def __repr__(self):
         return f'<ServiceType {self.name}>'
@@ -161,7 +167,7 @@ class Service(db.Model):
             if self.service_type and self.service_type.default_interval_mileage:
                 self.interval_mileage = self.service_type.default_interval_mileage
             else:
-                self.interval_mileage = 10000  # Default to 10,000 miles
+                self.interval_mileage = 10000  # Default to 10,000 KMs
     
     def update_schedule(self, current_mileage=None):
         """Update next service dates based on intervals"""

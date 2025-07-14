@@ -60,7 +60,7 @@
     <!-- No Vehicles State -->
     <div class="row">
         <div class="col-12">
-            <div class="card text-center py-5 border-left-primary">
+            <div class="card text-center py-5">
                 <div class="card-body">
                     <i class="bi bi-car-front text-muted fs-1 mb-3" style="width: 64px; height: 64px;"></i>
                     <h4>No Vehicles Added Yet</h4>
@@ -99,7 +99,7 @@
                                         Due: {{ service.next_service_date.strftime('%d/%m/%Y') }}
                                     {% endif %}
                                     {% if service.next_service_mileage %}
-                                        at {{ "{:,}".format(service.next_service_mileage) }} miles
+                                        at {{ "{:,}".format(service.next_service_mileage) }} KMs
                                     {% endif %}
                                 </small>
                             </div>
@@ -142,7 +142,7 @@
                                         Due: {{ service.next_service_date.strftime('%d/%m/%Y') }}
                                     {% endif %}
                                     {% if service.next_service_mileage %}
-                                        at {{ "{:,}".format(service.next_service_mileage) }} miles
+                                        at {{ "{:,}".format(service.next_service_mileage) }} KMs
                                     {% endif %}
                                 </small>
                             </div>
@@ -179,9 +179,9 @@
                             <thead>
                                 <tr>
                                     <th>Date</th>
-                                    <th>Vehicle Name</th>
+                                    <th>Vehicle</th>
+                                    <th>Name</th>
                                     <th>Registration Number</th>
-                                    {#<th>Service</th>#}
                                     <th>Mileage</th>
                                     <th>Service Cost</th>
                                 </tr>
@@ -190,12 +190,13 @@
                                 {% for history in recent_history %}
                                 <tr>
                                     <td>{{ history.service_date.strftime('%d/%m/%Y') }}</td>
+                                    <td>{{ history.car.vehicle_type.capitalize() }}</td>
                                     <td>{{ history.car.make }} {{ history.car.model }}</td>
                                     <td>{{ history.car.registration_number }}</td>
                                     {#<td>{{ history.service_type.name }}</td>#}
                                     <td>
                                         {% if history.mileage %}
-                                            {{ "{:,}".format(history.mileage) }} miles
+                                            {{ "{:,}".format(history.mileage) }} KMs
                                         {% else %}
                                             -
                                         {% endif %}
@@ -250,7 +251,7 @@
                                                 {% if car.color %} • {{ car.color }}{% endif %}
                                             </p>
                                             <small class="text-muted">
-                                                Current Milage: {{ "{:,}".format(car.current_mileage) }} miles
+                                                Current Milage: {{ "{:,}".format(car.current_mileage) }} KMs
                                             </small>
                                         </div>
                                         <div class="text-end">

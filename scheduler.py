@@ -49,9 +49,9 @@ def check_service_reminders():
                 if service.next_service_mileage and car.current_mileage:
                     miles_left = service.next_service_mileage - car.current_mileage
                     if miles_left <= 0:
-                        details.append(f"Overdue by {-miles_left} miles")
+                        details.append(f"Overdue by {-miles_left} KMs")
                     else:
-                        details.append(f"Due in {miles_left} miles")
+                        details.append(f"Due in {miles_left} KMs")
                 
                 if details:
                     message += f" ({', '.join(details)})"

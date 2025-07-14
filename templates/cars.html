@@ -25,7 +25,7 @@
     <!-- No Vehicles State -->
     <div class="row ">
         <div class="col-12">
-            <div class="card text-center py-5 border-left-primary">
+            <div class="card text-center py-5">
                 <div class="card-body">
                     <i class="bi bi-car-front text-muted fs-1 mb-3"></i>
                     <h4>No Vehicles Added Yet</h4>
@@ -157,7 +157,7 @@
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-start mb-3">
                         <div>
-                            <h5 class="card-title mb-1">{{ car.make }} {{ car.model }}</h5>
+                            <h5 class="card-title mb-1">({{ car.vehicle_type.capitalize() }}) {{ car.make }} {{ car.model }}</h5>
                             <p class="text-muted mb-0">{{ car.registration_number }}</p>
                         </div>
                         <div class="dropdown">
@@ -198,15 +198,13 @@
                             <div class="car-detail-label">Year</div>
                             <div class="car-detail-value">{{ car.year }}</div>
                         </div>
-                        {% if car.color %}
                         <div class="car-detail-item">
-                            <div class="car-detail-label">Color</div>
-                            <div class="car-detail-value">{{ car.color }}</div>
+                            <div class="car-detail-label">Type</div>
+                            <div class="car-detail-value">{{ car.vehicle_type.capitalize() }}</div>
                         </div>
-                        {% endif %}
                         <div class="car-detail-item">
                             <div class="car-detail-label">Current Mileage</div>
-                            <div class="car-detail-value">{{ "{:,}".format(car.current_mileage) }} miles</div>
+                            <div class="car-detail-value">{{ "{:,}".format(car.current_mileage) }} KMs</div>
                         </div>
                         <div class="car-detail-item">
                             <div class="car-detail-label">Services</div>

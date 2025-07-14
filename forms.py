@@ -33,6 +33,7 @@ class CarForm(FlaskForm):
     model = StringField('Model', validators=[DataRequired(), Length(min=1, max=50)])
     year = IntegerField('Year', validators=[DataRequired(), NumberRange(min=1900, max=years)], 
                        widget=NumberInput())
+    vin = StringField('Vehicle Identification Number', validators=[DataRequired(), Length(min=17, max=17)])
     registration_number = StringField('Registration Number', 
                                     validators=[DataRequired(), Length(min=10, max=10)])
     color = StringField('Color', validators=[DataRequired(), Length(max=30)])
@@ -41,6 +42,16 @@ class CarForm(FlaskForm):
                                   widget=MileageInput())
     insurance_company = StringField("Insurance Company", validators=[DataRequired()])
     expiry_date = DateField('Expairy Date', validators=[DataRequired()])
+    vehicle_type = SelectField('Vehicle Type',choices=[('car','Car'),
+                                        ('ev','Electric Vehicle'),
+                                        ('bus',"Bus"),
+                                        ('van','Van'),
+                                        ('truck','Truck'),
+                                        ('bike','Bike'),
+                                        ('tractor','Tractor'),
+                                        ('ambulance','Ambulance')],
+                                        default='car',
+                                        validators=[DataRequired()])
 
     def __init__(self, *args, car=None, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,6 +72,7 @@ class CarForm(FlaskForm):
 class MultiCheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
+    
 class ServiceForm(FlaskForm):
     service_type_ids = MultiCheckboxField(
     'Service Types',
@@ -70,7 +82,7 @@ class ServiceForm(FlaskForm):
 
     interval_months = IntegerField('Interval (Months)', validators=[Optional(), NumberRange(min=1)], 
                                    widget=NumberInput())
-    interval_mileage = IntegerField('Interval (Miles)', 
+    interval_mileage = IntegerField('Interval (KMs)', 
                                     validators=[Optional(), NumberRange(min=1, max=999999)], 
                                     widget=MileageInput())
     last_service_date = DateField('Last Service Date', validators=[Optional()])

@@ -27,7 +27,7 @@
             <a href="#overdue-services" class="dashboard-widget widget-overdue">
                 <h3>{{ overdue_services|length }}</h3>
                 <p>Overdue Services</p>
-                <i data-feather="alert-triangle" class="position-absolute" style="top: 1rem; right: 1rem; opacity: 0.7;"></i>
+                <i data-feather="alert-triangle" class="icon-dashboard-widget"></i>
             </a>
         </div>
         
@@ -35,7 +35,7 @@
             <a href="#due-soon-services" class="dashboard-widget widget-due-soon">
                 <h3>{{ due_soon_services|length }}</h3>
                 <p>Due Soon</p>
-                <i data-feather="clock" class="position-absolute" style="top: 1rem; right: 1rem; opacity: 0.7;"></i>
+                <i data-feather="clock" class="icon-dashboard-widget"></i>
             </a>
         </div>
         
@@ -43,7 +43,7 @@
             <a href="#upcoming-services" class="dashboard-widget widget-upcoming">
                 <h3>{{ upcoming_services|length }}</h3>
                 <p>Upcoming Services</p>
-                <i data-feather="calendar" class="position-absolute" style="top: 1rem; right: 1rem; opacity: 0.7;"></i>
+                <i data-feather="calendar" class="icon-dashboard-widget"></i>
             </a>
         </div>
 
@@ -51,10 +51,10 @@
             <a href="{{ url_for('cars') }}" class="dashboard-widget widget-cars">
                 <h3>{{ user_cars|length }}</h3>
                 <p>Your Vehicles</p>
-                <i class="bi bi-car-front position-absolute fs-3" style="top: 0.7rem; right: 1rem; opacity: 0.7;"></i>
+                <i class="bi bi-car-front icon-dashboard-widget icon-car fs-3"></i>
             </a>
         </div>
-    </div>
+    </div>                
 
     {% if not user_cars %}
     <!-- No Vehicles State -->

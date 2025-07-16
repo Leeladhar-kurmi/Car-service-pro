@@ -80,7 +80,7 @@
 
                             <!-- Shared Fields -->
                             <div class="col-md-6">
-                                <label for="{{ form.last_service_date.id }}" class="form-label">{{ form.last_service_date.label.text }}</label>
+                                <label for="{{ form.last_service_date.id }}" class="form-label">{% if 'Schedule' in title %}{{ form.last_service_date.label.text }}{% else %}Last Service date{% endif %}</label>
                                 {{ form.last_service_date(class="form-control") }}
                                 {% if form.last_service_date.errors %}
                                 <div class="invalid-feedback d-block">
@@ -132,7 +132,7 @@
                                         <span class="input-group-text">₹</span>
                                         <input type="number" step="1" class="form-control" id="total-cost" name="total_cost" readonly>
                                     </div>
-                                <div class="form-text">Total cost of all selected services (auto-calculated)</div>
+                                <div class="form-text">Total cost of all selected services</div>
                             </div>
 
                             <div class="col-md-6">

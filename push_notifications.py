@@ -33,7 +33,8 @@ class PushNotificationService:
                 subscription_info=subscription_info,
                 data=json.dumps(payload),
                 vapid_private_key=vapid_private_key,
-                vapid_claims=vapid_claims
+                vapid_claims=vapid_claims,
+                content_encoding="aesgcm"
             )
             logging.info(f"Push notification sent: {title}")
             return True

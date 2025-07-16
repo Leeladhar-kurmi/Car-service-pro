@@ -77,7 +77,9 @@ class ServiceForm(FlaskForm):
     service_type_ids = MultiCheckboxField(
     'Service Types',
     coerce=int,
-    validators=[]
+    validators=[DataRequired()],
+    option_widget=CheckboxInput(),
+    widget=ListWidget(prefix_label=False)
 )
 
     interval_months = IntegerField('Interval (Months)', validators=[Optional(), NumberRange(min=1)], 

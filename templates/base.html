@@ -245,15 +245,15 @@
 <body class="{% if current_user.is_authenticated %}user-authenticated{% endif %}">
 
 <!-- Navigation Bar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-  <div class="container">
-    <a class="navbar-brand me-5" href="{{ url_for('index') }}">
+<nav class="navbar navbar-expand-lg">
+  <div class="container-fluid d-flex justify-content-between align-items-cente">
+    <a class="navbar-brand d-flex align-items-center text-light" href="{{ url_for('index') }}">
       <i class="bi bi-car-front fs-1"></i>
       Vehicle Service Pro
     </a>
 
     {% if current_user.is_authenticated %}
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <button class="navbar-toggler custom-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
       <span class="navbar-toggler-icon"></span>
     </button>
 
@@ -338,8 +338,8 @@
         <span class="small">Get quick access from your home screen</span>
       </div>
       <div class="install-prompt-actions">
-        <button class="install-close-btn" id="install-close-btn">×</button>
-        <button id="install-btn" class="btn btn-sm btn-install">Install</button>
+        <button class="install-close-btn" id="install-close-btn">Close<i data-feather="x"></i></button>
+        <button id="install-btn" class="btn btn-sm btn-install">Install<i class="bi bi-download ms-1"></i></button>
       </div>
     </div>
   </div>
@@ -403,6 +403,24 @@
       }, 3000); // 3 seconds
     });
   });
+</script>
+
+<script>
+  // Sticky footer
+  function adjustFooterPosition() {
+    const footer = document.getElementById("ftr");
+    const bodyHeight = document.body.scrollHeight;
+    const windowHeight = window.innerHeight;
+
+    if (bodyHeight <= windowHeight) {
+      footer.classList.add("fixed-bottom");
+    } else {
+      footer.classList.remove("fixed-bottom");
+    }
+  }
+
+  window.addEventListener("load", adjustFooterPosition);
+  window.addEventListener("resize", adjustFooterPosition);
 </script>
 
 <script>

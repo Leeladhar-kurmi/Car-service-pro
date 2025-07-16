@@ -75,7 +75,7 @@ Want to know when you last changed your oil? Easy!
 Don't want to forget about maintenance? Let the app remind you:
 1. For each service, tell us:
    - How many months between services
-   - How many miles between services
+   - How many Kilometes between services
 2. The app will alert you when it's time for service
 
 ## Common Tasks Made Easy

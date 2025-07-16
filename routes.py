@@ -559,11 +559,11 @@ def register_routes(app, db, mail):
         if not form.new_email.data and session.get('pending_new_email'):
             form.new_email.data = session['pending_new_email']
 
-        print("Form validated:", form.validate_on_submit())
-        print("Form errors:", form.errors)
-        print("Request method:", request.method)
-        print("Action received:", request.form.get('action'))
-        print("New email entered:", form.new_email.data)
+        # print("Form validated:", form.validate_on_submit())
+        # print("Form errors:", form.errors)
+        # print("Request method:", request.method)
+        # print("Action received:", request.form.get('action'))
+        # print("New email entered:", form.new_email.data)
 
         if form.validate_on_submit():
             action = request.form.get('action')
@@ -862,19 +862,25 @@ def register_routes(app, db, mail):
             Car.user_id == current_user.id
         ).first_or_404()
 
+        # car = Car.query.filter_by(id=service_id, user_id=current_user.id).first_or_404()
+        car = service.car
+        form = ServiceForm()
+
         # Service type interval defaults
-        service_types = ServiceType.query.filter_by(vehicle_type=Car.vehicle_type).all()
+        # service_types = ServiceType.query.filter_by(vehicle_type=Car.vehicle_type).all()
+        # form.service_type_ids.choices = [(stype.id, stype.name) for stype in ServiceType.query.filter_by(vehicle_type=car.vehicle_type).all()]
+
+        service_types = ServiceType.query.filter_by(vehicle_type=car.vehicle_type).all()
         form.service_type_ids.choices = [(st.id, st.name) for st in service_types]
+
         service_type_intervals = {
             st.id: {
-                "mileage": st.default_interval_mileage or 0,
-                "months": st.default_interval_months or 0
+                "mileage": service.interval_mileage if service.service_type_id == st.id else (st.default_interval_mileage or 0),
+                "months": service.interval_months if service.service_type_id == st.id else (st.default_interval_months or 0)
+
             }
             for st in service_types
         }
-
-        form = ServiceForm()
-        form.service_type_ids.choices = [(st.id, st.name) for st in ServiceType.query.order_by(ServiceType.name)]
 
         if request.method == 'GET':
             # Pre-fill form
@@ -1026,34 +1032,73 @@ def register_routes(app, db, mail):
             for st in service_types
         }
 
+        # Pre-fill data if coming from "Mark as Done"
+        schedule_id = request.args.get('schedule_id', type=int)
+        if request.method == 'GET' and schedule_id:
+            scheduled = Service.query.filter_by(id=schedule_id, car_id=car.id).first()
+            if scheduled:
+                form.service_type_ids.data = [int(scheduled.service_type_id)]
+                form.last_service_date.data = scheduled.last_service_date
+                form.last_service_mileage.data = scheduled.last_service_mileage
+
         if form.validate_on_submit():
             total_cost = 0.0
             service_items = []
 
             for service_type_id in form.service_type_ids.data:
                 cost_key = f"service_cost_{service_type_id}"
+                mileage_key = f"interval_mileage_{service_type_id}"
+                months_key = f"interval_months_{service_type_id}"
+
+                # Extract values from form
                 try:
                     cost = float(request.form.get(cost_key, 0))
                 except (TypeError, ValueError):
                     cost = 0.0
                 total_cost += cost
 
+                try:
+                    interval_mileage = int(request.form.get(mileage_key, 0))
+                except (TypeError, ValueError):
+                    interval_mileage = 0
+
+                try:
+                    interval_months = int(request.form.get(months_key, 0))
+                except (TypeError, ValueError):
+                    interval_months = 0
+
+                # Create service history item
                 item = ServiceHistoryItem(
                     service_type_id=service_type_id,
                     cost=cost
                 )
                 service_items.append(item)
 
-                # Update related Service record
+                # Get or create the Service schedule
                 service = Service.query.filter_by(car_id=car.id, service_type_id=service_type_id).first()
-                if service:
-                    service.last_service_date = form.last_service_date.data
-                    service.last_service_mileage = form.last_service_mileage.data
-                    service.last_service_cost = cost
-                    service.last_service_notes = form.notes.data
-                    service.update_schedule()
+                if not service:
+                    service = Service(
+                        car_id=car.id,
+                        service_type_id=service_type_id,
+                        user_id=current_user.id,
+                        interval_mileage=interval_mileage,
+                        interval_months=interval_months,
+                        notify_days_before=form.notify_days_before.data or 7
+                    )
+                    db.session.add(service)
+                else:
+                    # Update the schedule with new intervals
+                    service.interval_mileage = interval_mileage
+                    service.interval_months = interval_months
 
-            # Create main history record
+                # Update last service info
+                service.last_service_date = form.last_service_date.data
+                service.last_service_mileage = form.last_service_mileage.data
+                service.last_service_cost = cost
+                service.last_service_notes = form.notes.data
+                service.calculate_next_service()
+
+            # Create the main history record
             history = ServiceHistory(
                 car_id=car.id,
                 user_id=current_user.id,
@@ -1324,7 +1369,7 @@ def register_routes(app, db, mail):
     def create_test_reminder():
         try:
             # Create a test user
-            user = User.query.filter_by(email='testuser@example.com').first()
+            user = User.query.filter_by(email='ldk@mistpl.com').first()
             if not user:
                 user = User(email='testuser@example.com', username='Test User')
                 user.set_password('test123')  # if you use password auth
@@ -1385,7 +1430,8 @@ def register_routes(app, db, mail):
     
     @app.route('/manifest')
     def manifest():
-        return send_from_directory('static', 'manifest.json')          
+        return send_from_directory('static', 'manifest.json')
+                 
     # Test route for chack the error log file
     # @app.route('/test-error')
     # def trigger_error():
